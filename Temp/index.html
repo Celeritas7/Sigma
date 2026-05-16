@@ -76,20 +76,10 @@ import { createClient } from '@supabase/supabase-js'
 // =============================================================================
 // CONFIG — paste your General_apps Supabase URL + anon key
 // =============================================================================
-const SUPABASE_URL = 'YOUR_SUPABASE_URL'
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'
+const SUPABASE_URL = 'https://wylxvmkcrexwfpjpbhyy.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5bHh2bWtjcmV4d2ZwanBiaHl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzkxMDYsImV4cCI6MjA4NDIxNTEwNn0.6Bxo42hx4jwlJGWnfjiTpiDUsYfc1QLTN3YtrU1efak'
 
-let supabase = null
-let supabaseInitError = null
-try {
-  if (SUPABASE_URL.includes('YOUR_SUPABASE_URL') || SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY')) {
-    supabaseInitError = 'placeholder'
-  } else {
-    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  }
-} catch (e) {
-  supabaseInitError = e.message || String(e)
-}
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 // ===== lib/calculations.js =====
 function weightedTotal(optionId, scores, parameters) {
@@ -186,6 +176,7 @@ function DecisionCard({ decision, onClick }) {
   )
 }
 
+// ===== components/NewDecisionCard.jsx =====
 function NewDecisionCard({ onClick }) {
   return (
     <button
@@ -220,289 +211,6 @@ function HomeView({ decisions, onSelect, onNew, loading }) {
   )
 }
 
-// =============================================================================
-// MATRIX — the heart of v0.3. Parameters as rows, options as columns.
-// Every cell = raw data (top, freeform text) + score (bottom, 0-10 + bar).
-// =============================================================================
-
-// ===== components/ScoreBar.jsx =====
-function ScoreBar({ value }) {
-  const pct = value == null ? 0 : Math.max(0, Math.min(100, (Number(value) / 10) * 100))
-  return (
-    <div className="flex-1 h-px bg-rule/60 relative">
-      {value != null && (
-        <div className="absolute left-0 top-0 h-px bg-amber transition-all" style={{ width: `${pct}%` }} />
-      )}
-    </div>
-  )
-}
-
-// ===== components/MatrixCell.jsx =====
-function MatrixCell({ score, onUpdate }) {
-  // value commits on blur of the numeric input
-  const [scoreDraft, setScoreDraft] = useState(score?.value ?? '')
-  useEffect(() => { setScoreDraft(score?.value ?? '') }, [score?.value])
-
-  const commitScore = () => {
-    if (scoreDraft === '' || scoreDraft === null) {
-      if (score?.value != null) onUpdate({ value: null })
-      return
-    }
-    const num = parseFloat(scoreDraft)
-    if (isNaN(num)) { setScoreDraft(score?.value ?? ''); return }
-    const clamped = Math.max(0, Math.min(10, num))
-    if (clamped !== score?.value) onUpdate({ value: clamped })
-  }
-
-  return (
-    <td className="border-l border-rule/30 align-top p-0">
-      <div className="p-2.5 min-w-[140px]">
-        <EditableText
-          value={score?.notes ?? ''}
-          onCommit={v => onUpdate({ notes: v })}
-          placeholder="—"
-          className="font-sans text-xs w-full text-paper/90 leading-relaxed mb-2"
-        />
-        <div className="flex items-center gap-2">
-          <input
-            type="number" min="0" max="10" step="0.5"
-            value={scoreDraft}
-            onChange={e => setScoreDraft(e.target.value)}
-            onBlur={commitScore}
-            onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
-            placeholder="—"
-            className="font-mono text-sm w-10 text-right text-amber"
-          />
-          <ScoreBar value={score?.value} />
-        </div>
-      </div>
-    </td>
-  )
-}
-
-// ===== components/ParameterRowHeader.jsx =====
-function ParameterRowHeader({ parameter, onUpdate, onDelete }) {
-  return (
-    <th className="text-left align-top p-0 group">
-      <div className="p-2.5 pr-4 min-w-[200px] max-w-[240px]">
-        <div className="flex items-start gap-2">
-          <EditableText
-            value={parameter.name}
-            onCommit={v => onUpdate({ name: v })}
-            className="font-sans text-sm font-medium text-paper flex-1"
-          />
-          <button
-            onClick={onDelete}
-            title="delete parameter"
-            className="font-mono text-sm text-muted opacity-0 group-hover:opacity-100 hover:text-amber transition"
-          >×</button>
-        </div>
-        <div className="flex items-center gap-2 mt-2">
-          <input
-            type="range" min="0" max="10" step="0.5"
-            value={parameter.weight}
-            onChange={e => onUpdate({ weight: parseFloat(e.target.value) })}
-            className="flex-1"
-          />
-          <span className="font-mono text-[10px] tabular-nums w-12 text-right text-amber">w {Number(parameter.weight).toFixed(1)}</span>
-        </div>
-      </div>
-    </th>
-  )
-}
-
-// ===== components/OptionColHeader.jsx =====
-function OptionColHeader({ option, isBest, onUpdate, onDelete }) {
-  return (
-    <th className="align-bottom p-0 group">
-      <div className="p-2.5 min-w-[140px] border-l border-rule/30">
-        <div className="flex items-center justify-between gap-2 mb-1">
-          {isBest && <span className="text-amber font-mono text-[10px]">▸</span>}
-          <EditableText
-            value={option.name}
-            onCommit={v => onUpdate({ name: v })}
-            className={`font-sans text-sm font-medium flex-1 ${isBest ? 'text-amber' : 'text-paper'}`}
-          />
-          <button
-            onClick={onDelete}
-            title="delete option"
-            className="font-mono text-sm text-muted opacity-0 group-hover:opacity-100 hover:text-amber transition"
-          >×</button>
-        </div>
-        <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted/60">option</div>
-      </div>
-    </th>
-  )
-}
-
-// ===== components/AddRow.jsx =====
-function AddParameterRow({ colSpan, onAdd }) {
-  const [draft, setDraft] = useState('')
-  const handle = () => { if (draft.trim()) { onAdd(draft.trim()); setDraft('') } }
-  return (
-    <tr className="border-t border-rule/40">
-      <th className="text-left p-0">
-        <div className="p-2.5">
-          <input
-            type="text" value={draft} onChange={e => setDraft(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handle()}
-            placeholder="+ add parameter…"
-            className="font-sans text-sm text-muted hover:text-paper focus:text-paper w-full"
-          />
-        </div>
-      </th>
-      <td colSpan={colSpan} className="p-2.5">
-        <button
-          onClick={handle}
-          disabled={!draft.trim()}
-          className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber disabled:opacity-30 disabled:hover:text-muted transition"
-        >press enter to add</button>
-      </td>
-    </tr>
-  )
-}
-
-function AddOptionCol({ rowCount, onAdd }) {
-  const [draft, setDraft] = useState('')
-  const handle = () => { if (draft.trim()) { onAdd(draft.trim()); setDraft('') } }
-  return (
-    <th rowSpan={rowCount} className="align-top p-0 border-l border-rule/30">
-      <div className="p-2.5 min-w-[140px]">
-        <input
-          type="text" value={draft} onChange={e => setDraft(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handle()}
-          placeholder="+ option…"
-          className="font-sans text-sm text-muted hover:text-paper focus:text-paper w-full mb-2"
-        />
-        <button
-          onClick={handle}
-          disabled={!draft.trim()}
-          className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber disabled:opacity-30 disabled:hover:text-muted transition"
-        >enter</button>
-      </div>
-    </th>
-  )
-}
-
-// ===== components/ScoreMatrix.jsx =====
-function ScoreMatrix({ parameters, options, scores, paramHandlers, optionHandlers, onScoreUpdate }) {
-  const totals = useMemo(() => {
-    const map = {}
-    for (const o of options) map[o.id] = weightedTotal(o.id, scores, parameters)
-    return map
-  }, [options, parameters, scores])
-
-  const best = useMemo(() => findBestOption(options, scores, parameters), [options, scores, parameters])
-
-  const getScore = (oId, pId) => scores.find(s => s.option_id === oId && s.parameter_id === pId)
-
-  // Edge case: no params and no options yet
-  if (parameters.length === 0 && options.length === 0) {
-    return (
-      <div>
-        <SectionHeader title="decision matrix" />
-        <div className="border border-dashed border-rule/60 p-8 text-center">
-          <p className="font-mono text-xs text-muted mb-4">empty matrix. add parameters (what matters) and options (what you're comparing).</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-            <QuickAdd placeholder="+ first parameter…" onAdd={paramHandlers.onAdd} />
-            <QuickAdd placeholder="+ first option…" onAdd={optionHandlers.onAdd} />
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Total rows: params + 1 add-param row + 1 total row
-  // Total cols: 1 param header col + options.length + 1 add-option col
-  const optionCount = options.length
-
-  return (
-    <div>
-      <SectionHeader title="decision matrix" meta={`${parameters.length} param × ${options.length} options`} />
-      <div className="overflow-x-auto -mx-2 px-2">
-        <table className="border-collapse">
-          <thead>
-            <tr className="border-b border-rule">
-              <th className="p-2.5 text-left align-bottom">
-                <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted">parameter</div>
-                <div className="font-mono text-[10px] text-muted/60 mt-1">weight 0–10</div>
-              </th>
-              {options.map(o => (
-                <OptionColHeader
-                  key={o.id}
-                  option={o}
-                  isBest={best?.id === o.id}
-                  onUpdate={fields => optionHandlers.onUpdate(o.id, fields)}
-                  onDelete={() => optionHandlers.onDelete(o.id)}
-                />
-              ))}
-              {/* Add-option column header (acts as its own col across all rows below) */}
-              <AddOptionCol rowCount={parameters.length + 2} onAdd={optionHandlers.onAdd} />
-            </tr>
-          </thead>
-          <tbody>
-            {parameters.map(p => (
-              <tr key={p.id} className="border-b border-rule/40">
-                <ParameterRowHeader
-                  parameter={p}
-                  onUpdate={fields => paramHandlers.onUpdate(p.id, fields)}
-                  onDelete={() => paramHandlers.onDelete(p.id)}
-                />
-                {options.map(o => (
-                  <MatrixCell
-                    key={o.id}
-                    score={getScore(o.id, p.id)}
-                    onUpdate={fields => onScoreUpdate(o.id, p.id, fields)}
-                  />
-                ))}
-              </tr>
-            ))}
-            <AddParameterRow colSpan={Math.max(optionCount, 1)} onAdd={paramHandlers.onAdd} />
-            {/* TOTAL row */}
-            <tr className="border-t-2 border-rule">
-              <th className="p-2.5 text-left align-middle">
-                <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-amber">total</div>
-                <div className="font-mono text-[10px] text-muted/60 mt-1">weighted average</div>
-              </th>
-              {options.map(o => {
-                const t = totals[o.id]
-                const isBest = best?.id === o.id
-                return (
-                  <td key={o.id} className="p-2.5 border-l border-rule/30 align-middle">
-                    <span className={`font-mono text-xl tabular-nums ${isBest ? 'text-amber' : 'text-paper'}`}>
-                      {t != null ? t.toFixed(2) : '—'}
-                    </span>
-                  </td>
-                )
-              })}
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      {best && (
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted/70 mt-6">
-          leading option · <span className="text-amber">{options.find(o => o.id === best.id)?.name}</span> · {best.total.toFixed(2)}
-        </p>
-      )}
-    </div>
-  )
-}
-
-// ===== components/QuickAdd.jsx (for empty-state in matrix) =====
-function QuickAdd({ placeholder, onAdd }) {
-  const [draft, setDraft] = useState('')
-  const handle = () => { if (draft.trim()) { onAdd(draft.trim()); setDraft('') } }
-  return (
-    <input
-      type="text" value={draft} onChange={e => setDraft(e.target.value)}
-      onKeyDown={e => e.key === 'Enter' && handle()}
-      placeholder={placeholder}
-      className="font-sans text-sm border border-rule/60 px-3 py-2 placeholder:text-muted hover:border-amber/40 focus:border-amber"
-    />
-  )
-}
-
 // ===== components/SectionHeader.jsx =====
 function SectionHeader({ title, meta }) {
   return (
@@ -513,36 +221,204 @@ function SectionHeader({ title, meta }) {
   )
 }
 
+// ===== components/ParametersPanel.jsx =====
+function ParametersPanel({ parameters, onAdd, onUpdate, onDelete }) {
+  const [newName, setNewName] = useState('')
+  const handleAdd = () => {
+    if (!newName.trim()) return
+    onAdd(newName.trim())
+    setNewName('')
+  }
+  return (
+    <div>
+      <SectionHeader title="parameters" meta={`${parameters.length} active`} />
+      <div className="space-y-1">
+        {parameters.length === 0 && (
+          <p className="font-mono text-xs text-muted py-3">no parameters yet. add what matters in your decision.</p>
+        )}
+        {parameters.map(p => (
+          <div key={p.id} className="group flex items-center gap-3 py-2 border-b border-rule/40">
+            <EditableText value={p.name} onCommit={v => onUpdate(p.id, { name: v })} className="flex-1 font-sans text-sm" />
+            <div className="flex items-center gap-2 w-36">
+              <input type="range" min="0" max="10" step="0.5" value={p.weight}
+                onChange={e => onUpdate(p.id, { weight: parseFloat(e.target.value) })} className="flex-1" />
+              <span className="font-mono text-xs tabular-nums w-8 text-right text-amber">{Number(p.weight).toFixed(1)}</span>
+            </div>
+            <button onClick={() => onDelete(p.id)} title="delete"
+              className="font-mono text-sm text-muted opacity-0 group-hover:opacity-100 hover:text-amber transition w-4">×</button>
+          </div>
+        ))}
+        <div className="flex gap-2 pt-3">
+          <input type="text" value={newName} onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAdd()} placeholder="new parameter…"
+            className="flex-1 font-sans text-sm border border-rule px-3 py-2" />
+          <button onClick={handleAdd}
+            className="font-mono text-xs uppercase tracking-wider px-3 py-2 border border-rule text-muted hover:text-amber hover:border-amber">add</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ===== components/OptionsPanel.jsx =====
+function OptionsPanel({ options, onAdd, onUpdate, onDelete }) {
+  const [newName, setNewName] = useState('')
+  const handleAdd = () => {
+    if (!newName.trim()) return
+    onAdd(newName.trim())
+    setNewName('')
+  }
+  return (
+    <div>
+      <SectionHeader title="options" meta={`${options.length} comparing`} />
+      <div className="space-y-1">
+        {options.length === 0 && (
+          <p className="font-mono text-xs text-muted py-3">no options yet. add the choices you're comparing.</p>
+        )}
+        {options.map(o => (
+          <div key={o.id} className="group flex items-center gap-3 py-2 border-b border-rule/40">
+            <EditableText value={o.name} onCommit={v => onUpdate(o.id, { name: v })} className="flex-1 font-sans text-sm" />
+            <button onClick={() => onDelete(o.id)} title="delete"
+              className="font-mono text-sm text-muted opacity-0 group-hover:opacity-100 hover:text-amber transition w-4">×</button>
+          </div>
+        ))}
+        <div className="flex gap-2 pt-3">
+          <input type="text" value={newName} onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAdd()} placeholder="new option…"
+            className="flex-1 font-sans text-sm border border-rule px-3 py-2" />
+          <button onClick={handleAdd}
+            className="font-mono text-xs uppercase tracking-wider px-3 py-2 border border-rule text-muted hover:text-amber hover:border-amber">add</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ===== components/ScoreCell.jsx =====
+function ScoreCell({ value, onCommit }) {
+  const [draft, setDraft] = useState(value ?? '')
+  useEffect(() => { setDraft(value ?? '') }, [value])
+  const commit = () => {
+    if (draft === '' || draft === null) { if (value !== null && value !== undefined) onCommit(null); return }
+    const num = parseFloat(draft)
+    if (isNaN(num)) { setDraft(value ?? ''); return }
+    const clamped = Math.max(0, Math.min(10, num))
+    if (clamped !== value) onCommit(clamped)
+  }
+  return (
+    <input type="number" min="0" max="10" step="0.5" value={draft}
+      onChange={e => setDraft(e.target.value)} onBlur={commit}
+      onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }} placeholder="—"
+      className="w-14 text-right font-mono text-sm border border-rule/40 px-1.5 py-1 focus:border-amber" />
+  )
+}
+
+// ===== components/ScoreMatrix.jsx =====
+function ScoreMatrix({ options, parameters, scores, onUpdate }) {
+  const totals = useMemo(() => {
+    const map = {}
+    for (const o of options) map[o.id] = weightedTotal(o.id, scores, parameters)
+    return map
+  }, [options, parameters, scores])
+
+  const best = useMemo(() => findBestOption(options, scores, parameters), [options, scores, parameters])
+
+  if (options.length === 0 || parameters.length === 0) {
+    return (
+      <div>
+        <SectionHeader title="score matrix" />
+        <p className="font-mono text-xs text-muted py-3">add at least one parameter and one option to begin scoring.</p>
+      </div>
+    )
+  }
+
+  const getScore = (oId, pId) => {
+    const s = scores.find(sc => sc.option_id === oId && sc.parameter_id === pId)
+    return s?.value ?? null
+  }
+
+  return (
+    <div>
+      <SectionHeader title="score matrix" meta="scores 0–10" />
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr>
+              <th className="text-left font-mono text-[10px] uppercase tracking-wider text-muted py-3 pr-2 align-bottom">option</th>
+              {parameters.map(p => (
+                <th key={p.id} className="text-right font-mono text-[10px] uppercase tracking-wider text-muted py-3 px-2 align-bottom min-w-[90px]">
+                  <div className="truncate max-w-[120px] ml-auto" title={p.name}>{p.name}</div>
+                  <div className="text-amber/60 font-normal mt-1">w {Number(p.weight).toFixed(1)}</div>
+                </th>
+              ))}
+              <th className="text-right font-mono text-[10px] uppercase tracking-wider py-3 pl-3 align-bottom border-l border-rule">
+                <div className="text-amber">total</div>
+                <div className="text-muted/60 font-normal mt-1">weighted</div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {options.map(o => {
+              const isBest = best?.id === o.id
+              const t = totals[o.id]
+              return (
+                <tr key={o.id} className={`border-t border-rule/40 ${isBest ? 'bg-amber/[0.04]' : ''}`}>
+                  <td className="py-2 pr-2 font-sans text-sm">
+                    <div className="flex items-center gap-2">
+                      {isBest && <span className="text-amber font-mono text-[10px]">▸</span>}
+                      <span className="truncate">{o.name}</span>
+                    </div>
+                  </td>
+                  {parameters.map(p => (
+                    <td key={p.id} className="py-2 px-2 text-right">
+                      <ScoreCell value={getScore(o.id, p.id)} onCommit={v => onUpdate(o.id, p.id, v)} />
+                    </td>
+                  ))}
+                  <td className="py-2 pl-3 text-right border-l border-rule">
+                    <span className={`font-mono text-base tabular-nums ${isBest ? 'text-amber' : 'text-paper'}`}>
+                      {t !== null ? t.toFixed(2) : '—'}
+                    </span>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      {best && (
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted/70 mt-6">
+          leading option · <span className="text-amber">{options.find(o => o.id === best.id)?.name}</span> · {best.total.toFixed(2)}
+        </p>
+      )}
+    </div>
+  )
+}
+
 // ===== components/DecisionView.jsx =====
 function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, optionHandlers, onScoreUpdate }) {
   return (
-    <main className="px-8 py-10 max-w-7xl mx-auto flex-1 w-full">
+    <main className="px-8 py-10 max-w-6xl mx-auto flex-1 w-full">
       <button onClick={onBack}
         className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted hover:text-amber mb-8 flex items-center gap-2 transition">
         <span className="text-base leading-none">←</span> all decisions
       </button>
-      <div className="mb-10">
+      <div className="mb-12">
         <EditableText value={decision.title} onCommit={onTitleUpdate}
           className="font-display text-4xl w-full focus:text-amber" placeholder="untitled decision" />
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted/60 mt-2">
           created {new Date(decision.created_at).toLocaleDateString()}
         </p>
       </div>
-      <ScoreMatrix
-        parameters={data.parameters}
-        options={data.options}
-        scores={data.scores}
-        paramHandlers={paramHandlers}
-        optionHandlers={optionHandlers}
-        onScoreUpdate={onScoreUpdate}
-      />
+      <div className="grid md:grid-cols-2 gap-12 mb-16">
+        <ParametersPanel parameters={data.parameters} {...paramHandlers} />
+        <OptionsPanel options={data.options} {...optionHandlers} />
+      </div>
+      <ScoreMatrix options={data.options} parameters={data.parameters} scores={data.scores} onUpdate={onScoreUpdate} />
     </main>
   )
 }
 
-// =============================================================================
-// App
-// =============================================================================
+// ===== App.jsx =====
 function App() {
   const [decisions, setDecisions] = useState([])
   const [selectedId, setSelectedId] = useState(null)
@@ -551,7 +427,9 @@ function App() {
   const [configError, setConfigError] = useState(false)
 
   useEffect(() => {
-    if (supabaseInitError) { setConfigError(true); setLoading(false); return }
+    if (SUPABASE_URL.includes('YOUR_SUPABASE_URL') || SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY')) {
+      setConfigError(true); setLoading(false); return
+    }
     loadDecisions()
   }, [])
 
@@ -661,25 +539,21 @@ function App() {
     await supabase.from('sigma_options').delete().eq('id', id)
   }
 
-  // updates: { value?: number|null, notes?: string }
-  async function updateScore(optionId, parameterId, updates) {
+  async function updateScore(optionId, parameterId, value) {
     const existing = decisionData.scores.find(s => s.option_id === optionId && s.parameter_id === parameterId)
-    if (existing) {
-      const merged = { ...existing, ...updates }
-      // If both value and notes are empty/null, delete the row
-      if ((merged.value == null) && (!merged.notes || merged.notes === '')) {
+    if (value === null) {
+      if (existing) {
         setDecisionData(prev => ({ ...prev, scores: prev.scores.filter(s => s.id !== existing.id) }))
         await supabase.from('sigma_scores').delete().eq('id', existing.id)
-        return
       }
-      setDecisionData(prev => ({ ...prev, scores: prev.scores.map(s => s.id === existing.id ? merged : s) }))
-      await supabase.from('sigma_scores').update(updates).eq('id', existing.id)
+      return
+    }
+    if (existing) {
+      setDecisionData(prev => ({ ...prev, scores: prev.scores.map(s => s.id === existing.id ? { ...s, value } : s) }))
+      await supabase.from('sigma_scores').update({ value }).eq('id', existing.id)
     } else {
-      // Don't create empty rows
-      const isEmpty = (updates.value == null) && (!updates.notes || updates.notes === '')
-      if (isEmpty) return
       const { data } = await supabase.from('sigma_scores')
-        .insert({ option_id: optionId, parameter_id: parameterId, ...updates }).select().single()
+        .insert({ option_id: optionId, parameter_id: parameterId, value }).select().single()
       if (data) setDecisionData(prev => ({ ...prev, scores: [...prev.scores, data] }))
     }
   }
@@ -698,11 +572,7 @@ function App() {
           <p className="font-display text-3xl text-amber mb-3">Σ</p>
           <p className="font-mono text-xs uppercase tracking-wider text-muted mb-4">configuration required</p>
           <p className="font-sans text-sm leading-relaxed">
-            {supabaseInitError === 'placeholder' ? (
-              <>Open <span className="font-mono text-amber">index.html</span> and replace <span className="font-mono text-amber">YOUR_SUPABASE_URL</span> and <span className="font-mono text-amber">YOUR_SUPABASE_ANON_KEY</span> with your General_apps project credentials.</>
-            ) : (
-              <>Supabase config error: <span className="font-mono text-amber">{supabaseInitError}</span>. Make sure your URL starts with <span className="font-mono text-amber">https://</span> and is the API URL, not the database URL.</>
-            )}
+            Open <span className="font-mono text-amber">index.html</span> and replace <span className="font-mono text-amber">YOUR_SUPABASE_URL</span> and <span className="font-mono text-amber">YOUR_SUPABASE_ANON_KEY</span> with your General_apps project credentials.
           </p>
           <p className="font-mono text-[10px] text-muted/60 mt-6">find them at: supabase.com → General_apps → settings → api</p>
         </div>
@@ -729,8 +599,8 @@ function App() {
         <div className="px-8 py-16 font-mono text-xs text-muted">loading…</div>
       )}
       <footer className="border-t border-rule mt-auto px-8 py-6 font-mono text-[10px] uppercase tracking-[0.2em] text-muted/60 flex justify-between">
-        <span>Σ sigma — v0.3</span>
-        <span>raw data + score</span>
+        <span>Σ sigma — v0.2</span>
+        <span>single-file mode</span>
       </footer>
     </div>
   )
