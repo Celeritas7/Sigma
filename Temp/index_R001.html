@@ -34,9 +34,7 @@
 <style>
   html, body { background: #0A0A0A; color: #E8E6E1; font-family: 'IBM Plex Sans', sans-serif; }
   ::selection { background: #FCA311; color: #0A0A0A; }
-  input, textarea, button, select { background: transparent; outline: none; color: inherit; }
-  select { appearance: none; -webkit-appearance: none; -moz-appearance: none; }
-  select option { background: #0A0A0A; color: #E8E6E1; }
+  input, textarea, button { background: transparent; outline: none; }
   button { cursor: pointer; }
   input::placeholder { color: #666660; }
   input[type=number]::-webkit-inner-spin-button,
@@ -76,7 +74,7 @@ import { createRoot } from 'react-dom/client'
 import { createClient } from '@supabase/supabase-js'
 
 // =============================================================================
-// CONFIG
+// CONFIG — paste your General_apps Supabase URL + anon key
 // =============================================================================
 const SUPABASE_URL = 'https://wylxvmkcrexwfpjpbhyy.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5bHh2bWtjcmV4d2ZwanBiaHl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzkxMDYsImV4cCI6MjA4NDIxNTEwNn0.6Bxo42hx4jwlJGWnfjiTpiDUsYfc1QLTN3YtrU1efak'
@@ -118,13 +116,12 @@ function findBestOption(options, scores, parameters) {
 }
 
 // ===== components/EditableText.jsx =====
-function EditableText({ value, onCommit, className, placeholder, inputMode }) {
+function EditableText({ value, onCommit, className, placeholder }) {
   const [draft, setDraft] = useState(value ?? '')
   useEffect(() => { setDraft(value ?? '') }, [value])
   return (
     <input
       type="text"
-      inputMode={inputMode}
       value={draft}
       placeholder={placeholder}
       onChange={e => setDraft(e.target.value)}
@@ -153,7 +150,7 @@ function Header({ onHomeClick }) {
   )
 }
 
-// ===== components/DecisionCard.jsx + NewDecisionCard.jsx =====
+// ===== components/DecisionCard.jsx =====
 function DecisionCard({ decision, onClick }) {
   const isUntitled = !decision.title?.trim()
   return (
@@ -223,18 +220,9 @@ function HomeView({ decisions, onSelect, onNew, loading }) {
   )
 }
 
-// ===== components/SectionHeader.jsx =====
-function SectionHeader({ title, meta }) {
-  return (
-    <div className="flex items-baseline justify-between mb-4 pb-2 border-b border-rule">
-      <h2 className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted">{title}</h2>
-      {meta && <span className="font-mono text-[10px] text-muted">{meta}</span>}
-    </div>
-  )
-}
-
 // =============================================================================
-// PHASE 1: Typed parameters
+// MATRIX — the heart of v0.3. Parameters as rows, options as columns.
+// Every cell = raw data (top, freeform text) + score (bottom, 0-10 + bar).
 // =============================================================================
 
 // ===== components/ScoreBar.jsx =====
@@ -249,58 +237,9 @@ function ScoreBar({ value }) {
   )
 }
 
-// ===== components/raw-inputs.jsx =====
-// One per input_type. All commit the raw value as the score's `notes` field.
-
-function TextRawInput({ value, onCommit }) {
-  return (
-    <EditableText
-      value={value}
-      onCommit={onCommit}
-      placeholder="—"
-      className="font-sans text-xs w-full text-paper/90 leading-relaxed"
-    />
-  )
-}
-
-function NumberRawInput({ value, unit, onCommit }) {
-  return (
-    <div className="flex items-baseline gap-1.5">
-      <EditableText
-        value={value}
-        onCommit={onCommit}
-        placeholder="—"
-        inputMode="decimal"
-        className="font-sans text-sm text-paper/90 min-w-0 flex-1"
-      />
-      {unit && <span className="font-mono text-[10px] text-muted shrink-0">{unit}</span>}
-    </div>
-  )
-}
-
-function CategoricalRawInput({ value, options, onCommit }) {
-  const safeOptions = Array.isArray(options) ? options : []
-  const hasMatch = safeOptions.includes(value)
-  return (
-    <div className="relative">
-      <select
-        value={hasMatch ? value : ''}
-        onChange={e => onCommit(e.target.value)}
-        className={`font-sans text-xs w-full leading-relaxed py-0.5 pr-4 cursor-pointer ${value && hasMatch ? 'text-paper/90' : 'text-muted'}`}
-      >
-        <option value="">—</option>
-        {safeOptions.map(opt => (
-          <option key={opt} value={opt}>{opt}</option>
-        ))}
-        {value && !hasMatch && <option value={value}>{value} (custom)</option>}
-      </select>
-      <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 font-mono text-[10px] text-muted">▾</span>
-    </div>
-  )
-}
-
 // ===== components/MatrixCell.jsx =====
-function MatrixCell({ score, parameter, onUpdate }) {
+function MatrixCell({ score, onUpdate }) {
+  // value commits on blur of the numeric input
   const [scoreDraft, setScoreDraft] = useState(score?.value ?? '')
   useEffect(() => { setScoreDraft(score?.value ?? '') }, [score?.value])
 
@@ -315,24 +254,15 @@ function MatrixCell({ score, parameter, onUpdate }) {
     if (clamped !== score?.value) onUpdate({ value: clamped })
   }
 
-  const commitRaw = (v) => onUpdate({ notes: v })
-
-  let rawInput
-  switch (parameter.input_type) {
-    case 'number':
-      rawInput = <NumberRawInput value={score?.notes ?? ''} unit={parameter.unit} onCommit={commitRaw} />
-      break
-    case 'categorical':
-      rawInput = <CategoricalRawInput value={score?.notes ?? ''} options={parameter.options} onCommit={commitRaw} />
-      break
-    default:
-      rawInput = <TextRawInput value={score?.notes ?? ''} onCommit={commitRaw} />
-  }
-
   return (
     <td className="border-l border-rule/30 align-top p-0">
-      <div className="p-2.5 min-w-[160px]">
-        <div className="mb-2 min-h-[22px]">{rawInput}</div>
+      <div className="p-2.5 min-w-[140px]">
+        <EditableText
+          value={score?.notes ?? ''}
+          onCommit={v => onUpdate({ notes: v })}
+          placeholder="—"
+          className="font-sans text-xs w-full text-paper/90 leading-relaxed mb-2"
+        />
         <div className="flex items-center gap-2">
           <input
             type="number" min="0" max="10" step="0.5"
@@ -350,123 +280,11 @@ function MatrixCell({ score, parameter, onUpdate }) {
   )
 }
 
-// ===== components/OptionInput.jsx (used inside TypeEditor for editing categorical options) =====
-function OptionInput({ value, onCommit, onRemove }) {
-  const [draft, setDraft] = useState(value ?? '')
-  useEffect(() => { setDraft(value ?? '') }, [value])
-  return (
-    <div className="flex items-center gap-1 mb-1">
-      <input
-        type="text"
-        value={draft}
-        onChange={e => setDraft(e.target.value)}
-        onBlur={() => { if (draft !== value) onCommit(draft) }}
-        onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
-        placeholder="option…"
-        className="flex-1 font-sans text-[11px] border border-rule/40 px-1.5 py-0.5 text-paper/90"
-      />
-      <button
-        onClick={onRemove}
-        className="font-mono text-xs text-muted hover:text-amber w-3 shrink-0"
-        title="remove"
-      >×</button>
-    </div>
-  )
-}
-
-// ===== components/TypeEditor.jsx =====
-function TypeEditor({ parameter, onUpdate, onClose }) {
-  const options = Array.isArray(parameter.options) ? parameter.options : []
-
-  const handleTypeChange = (newType) => {
-    const updates = { input_type: newType }
-    if (newType !== 'number') updates.unit = null
-    if (newType !== 'categorical') {
-      updates.options = null
-    } else if (newType === 'categorical' && options.length === 0) {
-      updates.options = ['', '']
-    }
-    onUpdate(updates)
-  }
-
-  const updateOption = (idx, value) => {
-    const next = [...options]
-    next[idx] = value
-    onUpdate({ options: next })
-  }
-  const addOption = () => onUpdate({ options: [...options, ''] })
-  const removeOption = (idx) => onUpdate({ options: options.filter((_, i) => i !== idx) })
-
-  return (
-    <div className="mt-3 p-2 border border-rule/40 bg-amber/[0.02] space-y-2">
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted shrink-0">type:</span>
-        <select
-          value={parameter.input_type || 'text'}
-          onChange={e => handleTypeChange(e.target.value)}
-          className="font-mono text-[10px] border border-rule/40 px-1.5 py-0.5 text-paper cursor-pointer"
-        >
-          <option value="text">text</option>
-          <option value="number">number</option>
-          <option value="categorical">categorical</option>
-        </select>
-      </div>
-
-      {parameter.input_type === 'number' && (
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted shrink-0">unit:</span>
-          <EditableText
-            value={parameter.unit || ''}
-            onCommit={v => onUpdate({ unit: v })}
-            placeholder="e.g. 万円, %, h/month"
-            className="flex-1 font-mono text-[11px] border border-rule/40 px-1.5 py-0.5 text-paper/90"
-          />
-        </div>
-      )}
-
-      {parameter.input_type === 'categorical' && (
-        <div>
-          <div className="font-mono text-[10px] uppercase tracking-wider text-muted mb-1.5">options</div>
-          {options.map((opt, idx) => (
-            <OptionInput
-              key={idx}
-              value={opt}
-              onCommit={v => updateOption(idx, v)}
-              onRemove={() => removeOption(idx)}
-            />
-          ))}
-          <button
-            onClick={addOption}
-            className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber transition mt-1"
-          >+ add option</button>
-        </div>
-      )}
-
-      <button
-        onClick={onClose}
-        className="font-mono text-[10px] uppercase tracking-wider text-amber border border-amber/40 px-2 py-1 hover:bg-amber hover:text-ink transition"
-      >done</button>
-    </div>
-  )
-}
-
 // ===== components/ParameterRowHeader.jsx =====
 function ParameterRowHeader({ parameter, onUpdate, onDelete }) {
-  const [editing, setEditing] = useState(false)
-
-  const typeSummary = () => {
-    const t = parameter.input_type || 'text'
-    if (t === 'number') return `number · ${parameter.unit || 'no unit'}`
-    if (t === 'categorical') {
-      const n = Array.isArray(parameter.options) ? parameter.options.length : 0
-      return `categorical · ${n} options`
-    }
-    return 'text'
-  }
-
   return (
     <th className="text-left align-top p-0 group">
-      <div className="p-2.5 pr-4 min-w-[220px] max-w-[260px]">
+      <div className="p-2.5 pr-4 min-w-[200px] max-w-[240px]">
         <div className="flex items-start gap-2">
           <EditableText
             value={parameter.name}
@@ -486,22 +304,8 @@ function ParameterRowHeader({ parameter, onUpdate, onDelete }) {
             onChange={e => onUpdate({ weight: parseFloat(e.target.value) })}
             className="flex-1"
           />
-          <span className="font-mono text-[10px] tabular-nums w-12 text-right text-amber">
-            w {Number(parameter.weight).toFixed(1)}
-          </span>
+          <span className="font-mono text-[10px] tabular-nums w-12 text-right text-amber">w {Number(parameter.weight).toFixed(1)}</span>
         </div>
-
-        {!editing ? (
-          <button
-            onClick={() => setEditing(true)}
-            className="mt-2 font-mono text-[10px] text-muted hover:text-amber transition w-full text-left"
-            title="edit parameter type and options"
-          >
-            <span className="opacity-60">▸</span> {typeSummary()}
-          </button>
-        ) : (
-          <TypeEditor parameter={parameter} onUpdate={onUpdate} onClose={() => setEditing(false)} />
-        )}
       </div>
     </th>
   )
@@ -511,7 +315,7 @@ function ParameterRowHeader({ parameter, onUpdate, onDelete }) {
 function OptionColHeader({ option, isBest, onUpdate, onDelete }) {
   return (
     <th className="align-bottom p-0 group">
-      <div className="p-2.5 min-w-[160px] border-l border-rule/30">
+      <div className="p-2.5 min-w-[140px] border-l border-rule/30">
         <div className="flex items-center justify-between gap-2 mb-1">
           {isBest && <span className="text-amber font-mono text-[10px]">▸</span>}
           <EditableText
@@ -531,7 +335,7 @@ function OptionColHeader({ option, isBest, onUpdate, onDelete }) {
   )
 }
 
-// ===== components/Add rows/cols =====
+// ===== components/AddRow.jsx =====
 function AddParameterRow({ colSpan, onAdd }) {
   const [draft, setDraft] = useState('')
   const handle = () => { if (draft.trim()) { onAdd(draft.trim()); setDraft('') } }
@@ -580,19 +384,6 @@ function AddOptionCol({ rowCount, onAdd }) {
   )
 }
 
-function QuickAdd({ placeholder, onAdd }) {
-  const [draft, setDraft] = useState('')
-  const handle = () => { if (draft.trim()) { onAdd(draft.trim()); setDraft('') } }
-  return (
-    <input
-      type="text" value={draft} onChange={e => setDraft(e.target.value)}
-      onKeyDown={e => e.key === 'Enter' && handle()}
-      placeholder={placeholder}
-      className="font-sans text-sm border border-rule/60 px-3 py-2 placeholder:text-muted hover:border-amber/40 focus:border-amber"
-    />
-  )
-}
-
 // ===== components/ScoreMatrix.jsx =====
 function ScoreMatrix({ parameters, options, scores, paramHandlers, optionHandlers, onScoreUpdate }) {
   const totals = useMemo(() => {
@@ -605,6 +396,7 @@ function ScoreMatrix({ parameters, options, scores, paramHandlers, optionHandler
 
   const getScore = (oId, pId) => scores.find(s => s.option_id === oId && s.parameter_id === pId)
 
+  // Edge case: no params and no options yet
   if (parameters.length === 0 && options.length === 0) {
     return (
       <div>
@@ -620,6 +412,8 @@ function ScoreMatrix({ parameters, options, scores, paramHandlers, optionHandler
     )
   }
 
+  // Total rows: params + 1 add-param row + 1 total row
+  // Total cols: 1 param header col + options.length + 1 add-option col
   const optionCount = options.length
 
   return (
@@ -631,7 +425,7 @@ function ScoreMatrix({ parameters, options, scores, paramHandlers, optionHandler
             <tr className="border-b border-rule">
               <th className="p-2.5 text-left align-bottom">
                 <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted">parameter</div>
-                <div className="font-mono text-[10px] text-muted/60 mt-1">weight · type</div>
+                <div className="font-mono text-[10px] text-muted/60 mt-1">weight 0–10</div>
               </th>
               {options.map(o => (
                 <OptionColHeader
@@ -642,6 +436,7 @@ function ScoreMatrix({ parameters, options, scores, paramHandlers, optionHandler
                   onDelete={() => optionHandlers.onDelete(o.id)}
                 />
               ))}
+              {/* Add-option column header (acts as its own col across all rows below) */}
               <AddOptionCol rowCount={parameters.length + 2} onAdd={optionHandlers.onAdd} />
             </tr>
           </thead>
@@ -657,13 +452,13 @@ function ScoreMatrix({ parameters, options, scores, paramHandlers, optionHandler
                   <MatrixCell
                     key={o.id}
                     score={getScore(o.id, p.id)}
-                    parameter={p}
                     onUpdate={fields => onScoreUpdate(o.id, p.id, fields)}
                   />
                 ))}
               </tr>
             ))}
             <AddParameterRow colSpan={Math.max(optionCount, 1)} onAdd={paramHandlers.onAdd} />
+            {/* TOTAL row */}
             <tr className="border-t-2 border-rule">
               <th className="p-2.5 text-left align-middle">
                 <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-amber">total</div>
@@ -690,6 +485,30 @@ function ScoreMatrix({ parameters, options, scores, paramHandlers, optionHandler
           leading option · <span className="text-amber">{options.find(o => o.id === best.id)?.name}</span> · {best.total.toFixed(2)}
         </p>
       )}
+    </div>
+  )
+}
+
+// ===== components/QuickAdd.jsx (for empty-state in matrix) =====
+function QuickAdd({ placeholder, onAdd }) {
+  const [draft, setDraft] = useState('')
+  const handle = () => { if (draft.trim()) { onAdd(draft.trim()); setDraft('') } }
+  return (
+    <input
+      type="text" value={draft} onChange={e => setDraft(e.target.value)}
+      onKeyDown={e => e.key === 'Enter' && handle()}
+      placeholder={placeholder}
+      className="font-sans text-sm border border-rule/60 px-3 py-2 placeholder:text-muted hover:border-amber/40 focus:border-amber"
+    />
+  )
+}
+
+// ===== components/SectionHeader.jsx =====
+function SectionHeader({ title, meta }) {
+  return (
+    <div className="flex items-baseline justify-between mb-4 pb-2 border-b border-rule">
+      <h2 className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted">{title}</h2>
+      {meta && <span className="font-mono text-[10px] text-muted">{meta}</span>}
     </div>
   )
 }
@@ -802,7 +621,7 @@ function App() {
 
   async function addParameter(name) {
     const { data } = await supabase.from('sigma_parameters')
-      .insert({ decision_id: selectedId, name, weight: 5.0, display_order: decisionData.parameters.length, input_type: 'text' })
+      .insert({ decision_id: selectedId, name, weight: 5.0, display_order: decisionData.parameters.length })
       .select().single()
     if (data) setDecisionData(prev => ({ ...prev, parameters: [...prev.parameters, data] }))
   }
@@ -842,10 +661,12 @@ function App() {
     await supabase.from('sigma_options').delete().eq('id', id)
   }
 
+  // updates: { value?: number|null, notes?: string }
   async function updateScore(optionId, parameterId, updates) {
     const existing = decisionData.scores.find(s => s.option_id === optionId && s.parameter_id === parameterId)
     if (existing) {
       const merged = { ...existing, ...updates }
+      // If both value and notes are empty/null, delete the row
       if ((merged.value == null) && (!merged.notes || merged.notes === '')) {
         setDecisionData(prev => ({ ...prev, scores: prev.scores.filter(s => s.id !== existing.id) }))
         await supabase.from('sigma_scores').delete().eq('id', existing.id)
@@ -854,6 +675,7 @@ function App() {
       setDecisionData(prev => ({ ...prev, scores: prev.scores.map(s => s.id === existing.id ? merged : s) }))
       await supabase.from('sigma_scores').update(updates).eq('id', existing.id)
     } else {
+      // Don't create empty rows
       const isEmpty = (updates.value == null) && (!updates.notes || updates.notes === '')
       if (isEmpty) return
       const { data } = await supabase.from('sigma_scores')
@@ -879,9 +701,10 @@ function App() {
             {supabaseInitError === 'placeholder' ? (
               <>Open <span className="font-mono text-amber">index.html</span> and replace <span className="font-mono text-amber">YOUR_SUPABASE_URL</span> and <span className="font-mono text-amber">YOUR_SUPABASE_ANON_KEY</span> with your General_apps project credentials.</>
             ) : (
-              <>Supabase config error: <span className="font-mono text-amber">{supabaseInitError}</span>. Make sure your URL starts with <span className="font-mono text-amber">https://</span>.</>
+              <>Supabase config error: <span className="font-mono text-amber">{supabaseInitError}</span>. Make sure your URL starts with <span className="font-mono text-amber">https://</span> and is the API URL, not the database URL.</>
             )}
           </p>
+          <p className="font-mono text-[10px] text-muted/60 mt-6">find them at: supabase.com → General_apps → settings → api</p>
         </div>
       </div>
     )
@@ -906,8 +729,8 @@ function App() {
         <div className="px-8 py-16 font-mono text-xs text-muted">loading…</div>
       )}
       <footer className="border-t border-rule mt-auto px-8 py-6 font-mono text-[10px] uppercase tracking-[0.2em] text-muted/60 flex justify-between">
-        <span>Σ sigma — v0.4</span>
-        <span>typed parameters</span>
+        <span>Σ sigma — v0.3</span>
+        <span>raw data + score</span>
       </footer>
     </div>
   )
