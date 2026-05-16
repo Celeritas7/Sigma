@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Σ — Sigma</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          'display': ['Fraunces', 'serif'],
+          'sans': ['IBM Plex Sans', 'sans-serif'],
+          'mono': ['IBM Plex Mono', 'monospace'],
+        },
+        colors: {
+          'ink': '#0A0A0A',
+          'paper': '#E8E6E1',
+          'rule': '#1F1F1F',
+          'amber': '#FCA311',
+          'muted': '#666660',
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  html, body { background: #0A0A0A; color: #E8E6E1; font-family: 'IBM Plex Sans', sans-serif; }
+  ::selection { background: #FCA311; color: #0A0A0A; }
+  input, textarea, button { background: transparent; outline: none; }
+  button { cursor: pointer; }
+  input::placeholder { color: #666660; }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; }
+  input[type=range] { -webkit-appearance: none; background: transparent; height: 14px; }
+  input[type=range]::-webkit-slider-runnable-track { height: 1px; background: #1F1F1F; }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; height: 12px; width: 12px;
+    background: #FCA311; border-radius: 50%; margin-top: -5.5px; cursor: pointer;
+  }
+  input[type=range]:focus::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgba(252,163,17,0.2); }
+  input[type=range]::-moz-range-track { height: 1px; background: #1F1F1F; }
+  input[type=range]::-moz-range-thumb {
+    height: 12px; width: 12px; background: #FCA311; border: none; border-radius: 50%; cursor: pointer;
+  }
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+  }
+}
+</script>
+
+<script src="https://unpkg.com/@babel/standalone@7.24.4/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-type="module" data-presets="react">
+import React, { useState, useEffect, useMemo } from 'react'
+import { createRoot } from 'react-dom/client'
+import { createClient } from '@supabase/supabase-js'
+
+// =============================================================================
+// CONFIG — paste your General_apps Supabase URL + anon key
+// =============================================================================
+const SUPABASE_URL = 'YOUR_SUPABASE_URL'
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+// ===== lib/calculations.js =====
+function weightedTotal(optionId, scores, parameters) {
+  let weightSum = 0, weightedSum = 0
+  for (const p of parameters) {
+    if (Number(p.weight) <= 0) continue
+    const s = scores.find(sc => sc.option_id === optionId && sc.parameter_id === p.id)
+    const val = s?.value
+    if (val === null || val === undefined) continue
+    weightSum += Number(p.weight)
+    weightedSum += Number(val) * Number(p.weight)
+  }
+  return weightSum > 0 ? weightedSum / weightSum : null
+}
+
+function findBestOption(options, scores, parameters) {
+  let best = null
+  for (const o of options) {
+    const t = weightedTotal(o.id, scores, parameters)
+    if (t === null) continue
+    if (!best || t > best.total) best = { id: o.id, total: t }
+  }
+  return best
+}
+
+// ===== components/EditableText.jsx =====
+function EditableText({ value, onCommit, className, placeholder }) {
+  const [draft, setDraft] = useState(value ?? '')
+  useEffect(() => { setDraft(value ?? '') }, [value])
+  return (
+    <input
+      type="text"
+      value={draft}
+      placeholder={placeholder}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={() => { if (draft !== value) onCommit(draft) }}
+      onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
+      className={className}
+    />
+  )
+}
+
+// ===== components/Header.jsx =====
+function Header({ onHomeClick }) {
+  return (
+    <header className="border-b border-rule px-8 py-6 flex items-baseline justify-between">
+      <button onClick={onHomeClick} className="flex items-baseline gap-4 hover:opacity-80 transition">
+        <span className="font-display text-5xl text-amber leading-none">Σ</span>
+        <div className="text-left">
+          <h1 className="font-display text-2xl tracking-tight">Sigma</h1>
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mt-0.5">decisions, weighted</p>
+        </div>
+      </button>
+      <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted hidden sm:block">
+        anti-bias decision engine
+      </div>
+    </header>
+  )
+}
+
+// ===== components/DecisionCard.jsx =====
+function DecisionCard({ decision, onClick }) {
+  const isUntitled = !decision.title?.trim()
+  return (
+    <button
+      onClick={onClick}
+      className="text-left border border-rule border-l-2 border-l-amber/30 hover:border-l-amber hover:bg-amber/[0.04] p-5 transition group flex flex-col min-h-[160px]"
+    >
+      <div className="flex items-baseline justify-between mb-2">
+        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted group-hover:text-amber/80 transition">decision</span>
+        <span className="font-mono text-[10px] text-muted/60">
+          {new Date(decision.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </span>
+      </div>
+      <h3 className={`font-display text-xl leading-tight mb-3 ${isUntitled ? 'text-muted italic' : ''}`}>
+        {decision.title?.trim() || 'untitled'}
+      </h3>
+      <div className="mt-auto pt-3 border-t border-rule/40">
+        {decision._leading ? (
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-muted/70 mb-0.5">leading</div>
+              <div className="font-sans text-sm text-amber truncate">{decision._leading.name}</div>
+            </div>
+            <div className="font-mono text-base text-amber tabular-nums">{decision._leading.total.toFixed(2)}</div>
+          </div>
+        ) : (
+          <div className="font-mono text-[10px] uppercase tracking-wider text-muted/60">
+            {decision._parameterCount} param · {decision._optionCount} options
+          </div>
+        )}
+      </div>
+    </button>
+  )
+}
+
+// ===== components/NewDecisionCard.jsx =====
+function NewDecisionCard({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="text-left border border-dashed border-rule/60 hover:border-amber hover:bg-amber/[0.04] p-5 transition group flex flex-col justify-between min-h-[160px]"
+    >
+      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted/70 group-hover:text-amber transition">new</span>
+      <div className="font-display text-xl text-muted group-hover:text-amber transition">+ new decision</div>
+    </button>
+  )
+}
+
+// ===== components/HomeView.jsx =====
+function HomeView({ decisions, onSelect, onNew, loading }) {
+  return (
+    <main className="px-8 py-10 max-w-6xl mx-auto flex-1 w-full">
+      <div className="mb-8 flex items-baseline justify-between pb-3 border-b border-rule">
+        <h2 className="font-mono text-[11px] uppercase tracking-[0.25em] text-muted">your decisions</h2>
+        <span className="font-mono text-[11px] text-muted">{decisions.length} active</span>
+      </div>
+      {loading ? (
+        <div className="font-mono text-xs text-muted py-12">loading…</div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {decisions.map(d => (
+            <DecisionCard key={d.id} decision={d} onClick={() => onSelect(d.id)} />
+          ))}
+          <NewDecisionCard onClick={onNew} />
+        </div>
+      )}
+    </main>
+  )
+}
+
+// ===== components/SectionHeader.jsx =====
+function SectionHeader({ title, meta }) {
+  return (
+    <div className="flex items-baseline justify-between mb-4 pb-2 border-b border-rule">
+      <h2 className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted">{title}</h2>
+      {meta && <span className="font-mono text-[10px] text-muted">{meta}</span>}
+    </div>
+  )
+}
+
+// ===== components/ParametersPanel.jsx =====
+function ParametersPanel({ parameters, onAdd, onUpdate, onDelete }) {
+  const [newName, setNewName] = useState('')
+  const handleAdd = () => {
+    if (!newName.trim()) return
+    onAdd(newName.trim())
+    setNewName('')
+  }
+  return (
+    <div>
+      <SectionHeader title="parameters" meta={`${parameters.length} active`} />
+      <div className="space-y-1">
+        {parameters.length === 0 && (
+          <p className="font-mono text-xs text-muted py-3">no parameters yet. add what matters in your decision.</p>
+        )}
+        {parameters.map(p => (
+          <div key={p.id} className="group flex items-center gap-3 py-2 border-b border-rule/40">
+            <EditableText value={p.name} onCommit={v => onUpdate(p.id, { name: v })} className="flex-1 font-sans text-sm" />
+            <div className="flex items-center gap-2 w-36">
+              <input type="range" min="0" max="10" step="0.5" value={p.weight}
+                onChange={e => onUpdate(p.id, { weight: parseFloat(e.target.value) })} className="flex-1" />
+              <span className="font-mono text-xs tabular-nums w-8 text-right text-amber">{Number(p.weight).toFixed(1)}</span>
+            </div>
+            <button onClick={() => onDelete(p.id)} title="delete"
+              className="font-mono text-sm text-muted opacity-0 group-hover:opacity-100 hover:text-amber transition w-4">×</button>
+          </div>
+        ))}
+        <div className="flex gap-2 pt-3">
+          <input type="text" value={newName} onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAdd()} placeholder="new parameter…"
+            className="flex-1 font-sans text-sm border border-rule px-3 py-2" />
+          <button onClick={handleAdd}
+            className="font-mono text-xs uppercase tracking-wider px-3 py-2 border border-rule text-muted hover:text-amber hover:border-amber">add</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ===== components/OptionsPanel.jsx =====
+function OptionsPanel({ options, onAdd, onUpdate, onDelete }) {
+  const [newName, setNewName] = useState('')
+  const handleAdd = () => {
+    if (!newName.trim()) return
+    onAdd(newName.trim())
+    setNewName('')
+  }
+  return (
+    <div>
+      <SectionHeader title="options" meta={`${options.length} comparing`} />
+      <div className="space-y-1">
+        {options.length === 0 && (
+          <p className="font-mono text-xs text-muted py-3">no options yet. add the choices you're comparing.</p>
+        )}
+        {options.map(o => (
+          <div key={o.id} className="group flex items-center gap-3 py-2 border-b border-rule/40">
+            <EditableText value={o.name} onCommit={v => onUpdate(o.id, { name: v })} className="flex-1 font-sans text-sm" />
+            <button onClick={() => onDelete(o.id)} title="delete"
+              className="font-mono text-sm text-muted opacity-0 group-hover:opacity-100 hover:text-amber transition w-4">×</button>
+          </div>
+        ))}
+        <div className="flex gap-2 pt-3">
+          <input type="text" value={newName} onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAdd()} placeholder="new option…"
+            className="flex-1 font-sans text-sm border border-rule px-3 py-2" />
+          <button onClick={handleAdd}
+            className="font-mono text-xs uppercase tracking-wider px-3 py-2 border border-rule text-muted hover:text-amber hover:border-amber">add</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ===== components/ScoreCell.jsx =====
+function ScoreCell({ value, onCommit }) {
+  const [draft, setDraft] = useState(value ?? '')
+  useEffect(() => { setDraft(value ?? '') }, [value])
+  const commit = () => {
+    if (draft === '' || draft === null) { if (value !== null && value !== undefined) onCommit(null); return }
+    const num = parseFloat(draft)
+    if (isNaN(num)) { setDraft(value ?? ''); return }
+    const clamped = Math.max(0, Math.min(10, num))
+    if (clamped !== value) onCommit(clamped)
+  }
+  return (
+    <input type="number" min="0" max="10" step="0.5" value={draft}
+      onChange={e => setDraft(e.target.value)} onBlur={commit}
+      onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }} placeholder="—"
+      className="w-14 text-right font-mono text-sm border border-rule/40 px-1.5 py-1 focus:border-amber" />
+  )
+}
+
+// ===== components/ScoreMatrix.jsx =====
+function ScoreMatrix({ options, parameters, scores, onUpdate }) {
+  const totals = useMemo(() => {
+    const map = {}
+    for (const o of options) map[o.id] = weightedTotal(o.id, scores, parameters)
+    return map
+  }, [options, parameters, scores])
+
+  const best = useMemo(() => findBestOption(options, scores, parameters), [options, scores, parameters])
+
+  if (options.length === 0 || parameters.length === 0) {
+    return (
+      <div>
+        <SectionHeader title="score matrix" />
+        <p className="font-mono text-xs text-muted py-3">add at least one parameter and one option to begin scoring.</p>
+      </div>
+    )
+  }
+
+  const getScore = (oId, pId) => {
+    const s = scores.find(sc => sc.option_id === oId && sc.parameter_id === pId)
+    return s?.value ?? null
+  }
+
+  return (
+    <div>
+      <SectionHeader title="score matrix" meta="scores 0–10" />
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr>
+              <th className="text-left font-mono text-[10px] uppercase tracking-wider text-muted py-3 pr-2 align-bottom">option</th>
+              {parameters.map(p => (
+                <th key={p.id} className="text-right font-mono text-[10px] uppercase tracking-wider text-muted py-3 px-2 align-bottom min-w-[90px]">
+                  <div className="truncate max-w-[120px] ml-auto" title={p.name}>{p.name}</div>
+                  <div className="text-amber/60 font-normal mt-1">w {Number(p.weight).toFixed(1)}</div>
+                </th>
+              ))}
+              <th className="text-right font-mono text-[10px] uppercase tracking-wider py-3 pl-3 align-bottom border-l border-rule">
+                <div className="text-amber">total</div>
+                <div className="text-muted/60 font-normal mt-1">weighted</div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {options.map(o => {
+              const isBest = best?.id === o.id
+              const t = totals[o.id]
+              return (
+                <tr key={o.id} className={`border-t border-rule/40 ${isBest ? 'bg-amber/[0.04]' : ''}`}>
+                  <td className="py-2 pr-2 font-sans text-sm">
+                    <div className="flex items-center gap-2">
+                      {isBest && <span className="text-amber font-mono text-[10px]">▸</span>}
+                      <span className="truncate">{o.name}</span>
+                    </div>
+                  </td>
+                  {parameters.map(p => (
+                    <td key={p.id} className="py-2 px-2 text-right">
+                      <ScoreCell value={getScore(o.id, p.id)} onCommit={v => onUpdate(o.id, p.id, v)} />
+                    </td>
+                  ))}
+                  <td className="py-2 pl-3 text-right border-l border-rule">
+                    <span className={`font-mono text-base tabular-nums ${isBest ? 'text-amber' : 'text-paper'}`}>
+                      {t !== null ? t.toFixed(2) : '—'}
+                    </span>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      {best && (
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted/70 mt-6">
+          leading option · <span className="text-amber">{options.find(o => o.id === best.id)?.name}</span> · {best.total.toFixed(2)}
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ===== components/DecisionView.jsx =====
+function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, optionHandlers, onScoreUpdate }) {
+  return (
+    <main className="px-8 py-10 max-w-6xl mx-auto flex-1 w-full">
+      <button onClick={onBack}
+        className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted hover:text-amber mb-8 flex items-center gap-2 transition">
+        <span className="text-base leading-none">←</span> all decisions
+      </button>
+      <div className="mb-12">
+        <EditableText value={decision.title} onCommit={onTitleUpdate}
+          className="font-display text-4xl w-full focus:text-amber" placeholder="untitled decision" />
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted/60 mt-2">
+          created {new Date(decision.created_at).toLocaleDateString()}
+        </p>
+      </div>
+      <div className="grid md:grid-cols-2 gap-12 mb-16">
+        <ParametersPanel parameters={data.parameters} {...paramHandlers} />
+        <OptionsPanel options={data.options} {...optionHandlers} />
+      </div>
+      <ScoreMatrix options={data.options} parameters={data.parameters} scores={data.scores} onUpdate={onScoreUpdate} />
+    </main>
+  )
+}
+
+// ===== App.jsx =====
+function App() {
+  const [decisions, setDecisions] = useState([])
+  const [selectedId, setSelectedId] = useState(null)
+  const [decisionData, setDecisionData] = useState({ parameters: [], options: [], scores: [] })
+  const [loading, setLoading] = useState(true)
+  const [configError, setConfigError] = useState(false)
+
+  useEffect(() => {
+    if (SUPABASE_URL.includes('YOUR_SUPABASE_URL') || SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY')) {
+      setConfigError(true); setLoading(false); return
+    }
+    loadDecisions()
+  }, [])
+
+  useEffect(() => {
+    if (selectedId) loadDecisionDetail(selectedId)
+  }, [selectedId])
+
+  async function loadDecisions() {
+    setLoading(true)
+    const { data: decs } = await supabase
+      .from('sigma_decisions').select('*')
+      .neq('status', 'archived').order('updated_at', { ascending: false })
+    if (!decs || decs.length === 0) { setDecisions([]); setLoading(false); return }
+
+    const ids = decs.map(d => d.id)
+    const [pRes, oRes, sRes] = await Promise.all([
+      supabase.from('sigma_parameters').select('*').in('decision_id', ids),
+      supabase.from('sigma_options').select('*').in('decision_id', ids),
+      supabase.from('sigma_scores').select('*, sigma_options!inner(decision_id)').in('sigma_options.decision_id', ids),
+    ])
+    const enriched = decs.map(d => {
+      const parameters = (pRes.data || []).filter(p => p.decision_id === d.id)
+      const options = (oRes.data || []).filter(o => o.decision_id === d.id)
+      const scores = (sRes.data || []).filter(s => s.sigma_options?.decision_id === d.id)
+      const best = findBestOption(options, scores, parameters)
+      const bestOption = best ? options.find(o => o.id === best.id) : null
+      return {
+        ...d,
+        _parameterCount: parameters.length,
+        _optionCount: options.length,
+        _leading: bestOption ? { name: bestOption.name, total: best.total } : null,
+      }
+    })
+    setDecisions(enriched)
+    setLoading(false)
+  }
+
+  async function loadDecisionDetail(id) {
+    const [pRes, oRes, sRes] = await Promise.all([
+      supabase.from('sigma_parameters').select('*').eq('decision_id', id).order('display_order'),
+      supabase.from('sigma_options').select('*').eq('decision_id', id).order('display_order'),
+      supabase.from('sigma_scores').select('*, sigma_options!inner(decision_id)').eq('sigma_options.decision_id', id),
+    ])
+    setDecisionData({
+      parameters: pRes.data || [],
+      options: oRes.data || [],
+      scores: sRes.data || [],
+    })
+  }
+
+  async function createDecision() {
+    const { data } = await supabase
+      .from('sigma_decisions')
+      .insert({ title: '', type: 'custom', status: 'active' })
+      .select().single()
+    if (data) {
+      setDecisions([{ ...data, _parameterCount: 0, _optionCount: 0, _leading: null }, ...decisions])
+      setSelectedId(data.id)
+      setDecisionData({ parameters: [], options: [], scores: [] })
+    }
+  }
+
+  async function updateDecisionTitle(title) {
+    setDecisions(decisions.map(d => d.id === selectedId ? { ...d, title } : d))
+    await supabase.from('sigma_decisions').update({ title }).eq('id', selectedId)
+  }
+
+  async function addParameter(name) {
+    const { data } = await supabase.from('sigma_parameters')
+      .insert({ decision_id: selectedId, name, weight: 5.0, display_order: decisionData.parameters.length })
+      .select().single()
+    if (data) setDecisionData(prev => ({ ...prev, parameters: [...prev.parameters, data] }))
+  }
+
+  async function updateParameter(id, fields) {
+    setDecisionData(prev => ({ ...prev, parameters: prev.parameters.map(p => p.id === id ? { ...p, ...fields } : p) }))
+    await supabase.from('sigma_parameters').update(fields).eq('id', id)
+  }
+
+  async function deleteParameter(id) {
+    setDecisionData(prev => ({
+      ...prev,
+      parameters: prev.parameters.filter(p => p.id !== id),
+      scores: prev.scores.filter(s => s.parameter_id !== id),
+    }))
+    await supabase.from('sigma_parameters').delete().eq('id', id)
+  }
+
+  async function addOption(name) {
+    const { data } = await supabase.from('sigma_options')
+      .insert({ decision_id: selectedId, name, display_order: decisionData.options.length })
+      .select().single()
+    if (data) setDecisionData(prev => ({ ...prev, options: [...prev.options, data] }))
+  }
+
+  async function updateOption(id, fields) {
+    setDecisionData(prev => ({ ...prev, options: prev.options.map(o => o.id === id ? { ...o, ...fields } : o) }))
+    await supabase.from('sigma_options').update(fields).eq('id', id)
+  }
+
+  async function deleteOption(id) {
+    setDecisionData(prev => ({
+      ...prev,
+      options: prev.options.filter(o => o.id !== id),
+      scores: prev.scores.filter(s => s.option_id !== id),
+    }))
+    await supabase.from('sigma_options').delete().eq('id', id)
+  }
+
+  async function updateScore(optionId, parameterId, value) {
+    const existing = decisionData.scores.find(s => s.option_id === optionId && s.parameter_id === parameterId)
+    if (value === null) {
+      if (existing) {
+        setDecisionData(prev => ({ ...prev, scores: prev.scores.filter(s => s.id !== existing.id) }))
+        await supabase.from('sigma_scores').delete().eq('id', existing.id)
+      }
+      return
+    }
+    if (existing) {
+      setDecisionData(prev => ({ ...prev, scores: prev.scores.map(s => s.id === existing.id ? { ...s, value } : s) }))
+      await supabase.from('sigma_scores').update({ value }).eq('id', existing.id)
+    } else {
+      const { data } = await supabase.from('sigma_scores')
+        .insert({ option_id: optionId, parameter_id: parameterId, value }).select().single()
+      if (data) setDecisionData(prev => ({ ...prev, scores: [...prev.scores, data] }))
+    }
+  }
+
+  function goHome() {
+    setSelectedId(null)
+    loadDecisions()
+  }
+
+  const selectedDecision = decisions.find(d => d.id === selectedId)
+
+  if (configError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8">
+        <div className="max-w-md">
+          <p className="font-display text-3xl text-amber mb-3">Σ</p>
+          <p className="font-mono text-xs uppercase tracking-wider text-muted mb-4">configuration required</p>
+          <p className="font-sans text-sm leading-relaxed">
+            Open <span className="font-mono text-amber">index.html</span> and replace <span className="font-mono text-amber">YOUR_SUPABASE_URL</span> and <span className="font-mono text-amber">YOUR_SUPABASE_ANON_KEY</span> with your General_apps project credentials.
+          </p>
+          <p className="font-mono text-[10px] text-muted/60 mt-6">find them at: supabase.com → General_apps → settings → api</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header onHomeClick={goHome} />
+      {selectedId === null ? (
+        <HomeView decisions={decisions} onSelect={setSelectedId} onNew={createDecision} loading={loading} />
+      ) : selectedDecision ? (
+        <DecisionView
+          decision={selectedDecision}
+          data={decisionData}
+          onBack={goHome}
+          onTitleUpdate={updateDecisionTitle}
+          paramHandlers={{ onAdd: addParameter, onUpdate: updateParameter, onDelete: deleteParameter }}
+          optionHandlers={{ onAdd: addOption, onUpdate: updateOption, onDelete: deleteOption }}
+          onScoreUpdate={updateScore}
+        />
+      ) : (
+        <div className="px-8 py-16 font-mono text-xs text-muted">loading…</div>
+      )}
+      <footer className="border-t border-rule mt-auto px-8 py-6 font-mono text-[10px] uppercase tracking-[0.2em] text-muted/60 flex justify-between">
+        <span>Σ sigma — v0.2</span>
+        <span>single-file mode</span>
+      </footer>
+    </div>
+  )
+}
+
+const root = createRoot(document.getElementById('root'))
+root.render(<App />)
+</script>
+</body>
+</html>
