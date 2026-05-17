@@ -7,52 +7,65 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        fontFamily: {
-          'display': ['Fraunces', 'serif'],
-          'sans': ['IBM Plex Sans', 'sans-serif'],
-          'mono': ['IBM Plex Mono', 'monospace'],
-        },
-        colors: {
-          'ink': '#0A0A0A',
-          'paper': '#E8E6E1',
-          'rule': '#1F1F1F',
-          'amber': '#FCA311',
-          'muted': '#666660',
-        }
-      }
-    }
-  }
-</script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
 <style>
-  html, body { background: #0A0A0A; color: #E8E6E1; font-family: 'IBM Plex Sans', sans-serif; }
-  ::selection { background: #FCA311; color: #0A0A0A; }
-  input, textarea, button, select { background: transparent; outline: none; color: inherit; }
-  select { appearance: none; -webkit-appearance: none; -moz-appearance: none; }
-  select option { background: #0A0A0A; color: #E8E6E1; }
+  :root {
+    --bg:       oklch(0.985 0.004 95);
+    --bg-soft:  oklch(0.965 0.005 95);
+    --bg-inset: oklch(0.945 0.005 95);
+    --ink:      oklch(0.15 0.015 240);
+    --ink-soft: oklch(0.38 0.012 240);
+    --ink-faint:oklch(0.62 0.010 240);
+    --ink-ghost:oklch(0.82 0.008 240);
+    --rule:     oklch(0.90 0.006 240);
+    --rule-soft:oklch(0.945 0.005 240);
+    --accent:     oklch(0.58 0.16 145);
+    --accent-soft:oklch(0.93 0.05 145);
+    --accent-ink: oklch(0.32 0.13 145);
+    --neg:      oklch(0.62 0.18 30);
+    --neg-soft: oklch(0.96 0.04 30);
+    --warn:     oklch(0.72 0.14 75);
+    --warn-soft:oklch(0.96 0.05 75);
+    --hi:       oklch(0.5 0.16 260);
+    --hi-soft:  oklch(0.94 0.04 260);
+  }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--ink);
+    font-family: 'Geist', 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  * { box-sizing: border-box; }
+  ::selection { background: var(--accent-soft); color: var(--accent-ink); }
+  button, input, select, textarea { font: inherit; color: inherit; }
   button { cursor: pointer; }
-  input::placeholder { color: #666660; }
-  input[type=number]::-webkit-inner-spin-button,
-  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-  input[type=number] { -moz-appearance: textfield; }
-  input[type=range] { -webkit-appearance: none; background: transparent; height: 14px; }
-  input[type=range]::-webkit-slider-runnable-track { height: 1px; background: #1F1F1F; }
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; height: 12px; width: 12px;
-    background: #FCA311; border-radius: 50%; margin-top: -5.5px; cursor: pointer;
-  }
-  input[type=range]:focus::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgba(252,163,17,0.2); }
-  input[type=range]::-moz-range-track { height: 1px; background: #1F1F1F; }
-  input[type=range]::-moz-range-thumb {
-    height: 12px; width: 12px; background: #FCA311; border: none; border-radius: 50%; cursor: pointer;
-  }
+  input, textarea, select { background: transparent; outline: none; }
+  input::placeholder, textarea::placeholder { color: var(--ink-faint); }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--rule-soft); border-radius: 5px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--ink-ghost); }
+  .mono { font-family: 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .label { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
+  .pill { display: inline-flex; align-items: center; padding: 2px 8px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 3px; white-space: nowrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; font-size: 13px; font-weight: 500; border: 1px solid transparent; border-radius: 6px; transition: all 120ms; line-height: 1.2; }
+  .btn-sm { padding: 6px 11px; font-size: 12px; }
+  .btn-primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .btn-accent  { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .btn-outline { background: var(--bg); color: var(--ink); border-color: var(--rule); }
+  .btn-outline:hover { background: var(--bg-soft); }
+  .btn-ghost   { background: transparent; color: var(--ink); border-color: transparent; }
+  .btn-ghost:hover { background: var(--bg-soft); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .iconbtn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--ink-soft); font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; }
+  .iconbtn:hover { background: var(--bg-inset); color: var(--ink); }
+  .overlay-bg { position: fixed; inset: 0; background: oklch(0.15 0.015 240 / 0.55); z-index: 50; display: flex; align-items: center; justify-content: center; animation: fadein 200ms; }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideright { from { transform: translateX(60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes popin { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .overlay-card { background: var(--bg); color: var(--ink); border-radius: 10px; box-shadow: 0 30px 60px rgba(0,0,0,0.25); max-height: 90vh; overflow: auto; animation: popin 220ms cubic-bezier(0.16,1,0.3,1); }
+  .drawer-card { background: var(--bg); color: var(--ink); width: 460px; max-width: 95vw; height: 100%; overflow: auto; box-shadow: -20px 0 40px rgba(0,0,0,0.2); animation: slideright 220ms cubic-bezier(0.16,1,0.3,1); }
+  input[type=range] { -webkit-appearance: none; background: transparent; }
 </style>
 
 <script type="importmap">
@@ -71,12 +84,12 @@
 <div id="root"></div>
 
 <script type="text/babel" data-type="module" data-presets="react">
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createClient } from '@supabase/supabase-js'
 
 // =============================================================================
-// CONFIG
+// CONFIG (UNCHANGED from original — same Supabase project, same tables)
 // =============================================================================
 const SUPABASE_URL = 'https://wylxvmkcrexwfpjpbhyy.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5bHh2bWtjcmV4d2ZwanBiaHl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2MzkxMDYsImV4cCI6MjA4NDIxNTEwNn0.6Bxo42hx4jwlJGWnfjiTpiDUsYfc1QLTN3YtrU1efak'
@@ -84,218 +97,608 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 let supabase = null
 let supabaseInitError = null
 try {
-  if (SUPABASE_URL.includes('YOUR_SUPABASE_URL') || SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY')) {
-    supabaseInitError = 'placeholder'
-  } else {
-    supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  }
+  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 } catch (e) {
   supabaseInitError = e.message || String(e)
 }
 
-// ===== lib/calculations.js =====
-function weightedTotal(optionId, scores, parameters) {
-  let weightSum = 0, weightedSum = 0
+// =============================================================================
+// CALCULATIONS
+// =============================================================================
+function weightedTotal(optionId, scores, parameters, weightOverrides = null) {
+  let wSum = 0, vSum = 0
   for (const p of parameters) {
-    if (Number(p.weight) <= 0) continue
+    const w = weightOverrides?.[p.id] ?? Number(p.weight)
+    if (w <= 0) continue
     const s = scores.find(sc => sc.option_id === optionId && sc.parameter_id === p.id)
-    const val = s?.value
-    if (val === null || val === undefined) continue
-    weightSum += Number(p.weight)
-    weightedSum += Number(val) * Number(p.weight)
+    if (!s || s.value == null) continue
+    wSum += w
+    vSum += Number(s.value) * w
   }
-  return weightSum > 0 ? weightedSum / weightSum : null
+  return wSum > 0 ? vSum / wSum : null
 }
 
-function findBestOption(options, scores, parameters) {
-  let best = null
-  for (const o of options) {
-    const t = weightedTotal(o.id, scores, parameters)
-    if (t === null) continue
-    if (!best || t > best.total) best = { id: o.id, total: t }
+function rankedOptions(options, scores, parameters, weightOverrides = null) {
+  return options
+    .map(o => ({ ...o, _total: weightedTotal(o.id, scores, parameters, weightOverrides) }))
+    .sort((a, b) => (b._total ?? -1) - (a._total ?? -1))
+}
+
+function paramContribution(optionId, paramId, scores, parameters, weightOverrides = null) {
+  const p = parameters.find(x => x.id === paramId)
+  if (!p) return 0
+  const w = weightOverrides?.[paramId] ?? Number(p.weight)
+  const s = scores.find(sc => sc.option_id === optionId && sc.parameter_id === paramId)
+  if (!s || s.value == null) return 0
+  return Number(s.value) * w
+}
+
+function completeness(parameters, options, scores) {
+  const total = parameters.length * options.length
+  if (!total) return { filled: 0, total: 0, pct: 0 }
+  let filled = 0
+  for (const o of options) for (const p of parameters) {
+    if (scores.find(s => s.option_id === o.id && s.parameter_id === p.id && s.value != null)) filled++
   }
-  return best
+  return { filled, total, pct: filled / total }
 }
 
-function normalizeOptions(options) {
-  if (!Array.isArray(options)) return []
-  return options.map(o => {
-    if (typeof o === 'string') return { label: o, score: null }
-    if (o && typeof o === 'object' && 'label' in o) return { label: o.label, score: o.score ?? null }
-    return null
-  }).filter(Boolean)
+// deterministic monte-carlo: ±2 jitter on each weight, count if leader holds
+function robustness(parameters, options, scores) {
+  const base = rankedOptions(options, scores, parameters)
+  if (!base[0] || base[0]._total == null) return null
+  const topId = base[0].id
+  let holds = 0
+  const N = 100
+  for (let i = 0; i < N; i++) {
+    const over = {}
+    for (const p of parameters) {
+      const j = Math.sin(i * 31 + Number(p.weight) * 7) * 2
+      over[p.id] = Math.max(0, Math.min(10, Number(p.weight) + j))
+    }
+    const r = rankedOptions(options, scores, parameters, over)
+    if (r[0]?.id === topId) holds++
+  }
+  return holds / N
 }
 
-// ===== components/EditableText.jsx =====
-function EditableText({ value, onCommit, className, placeholder, inputMode }) {
+function perWeightSensitivity(parameters, options, scores) {
+  const base = rankedOptions(options, scores, parameters)
+  if (!base[0]) return []
+  const topId = base[0].id
+  return parameters.map(p => {
+    let flipped = 0; let flipAt = null
+    for (let w = 0; w <= 10; w += 0.5) {
+      const r = rankedOptions(options, scores, parameters, { [p.id]: w })
+      if (r[0]?.id !== topId) { flipped++; if (flipAt == null) flipAt = w }
+    }
+    return { p, sens: flipped / 21, flipAt }
+  })
+}
+
+// =============================================================================
+// THEME STATE (persisted to localStorage)
+// =============================================================================
+const ACCENT_OPTIONS = [
+  { name: 'green', hue: 145 },
+  { name: 'blue',  hue: 260 },
+  { name: 'coral', hue: 30 },
+  { name: 'plum',  hue: 320 },
+]
+function applyAccent(hue) {
+  const r = document.documentElement
+  r.style.setProperty('--accent',      `oklch(0.58 0.16 ${hue})`)
+  r.style.setProperty('--accent-soft', `oklch(0.93 0.05 ${hue})`)
+  r.style.setProperty('--accent-ink',  `oklch(0.32 0.13 ${hue})`)
+}
+
+// =============================================================================
+// SMALL UI ATOMS
+// =============================================================================
+function Pill({ children, color, bg, style }) {
+  const c = color || 'var(--ink)'
+  return <span className="pill" style={{
+    background: bg || `color-mix(in oklch, ${c} 14%, var(--bg))`,
+    color: c, ...style,
+  }}>{children}</span>
+}
+
+function InlineText({ value, onCommit, placeholder, style, multiline }) {
   const [draft, setDraft] = useState(value ?? '')
-  useEffect(() => { setDraft(value ?? '') }, [value])
+  const [editing, setEditing] = useState(false)
+  useEffect(() => setDraft(value ?? ''), [value])
+  if (!editing) {
+    return <span onClick={() => setEditing(true)} style={{
+      cursor: 'text', display: 'inline-block', minHeight: '1em',
+      color: value ? (style?.color || 'var(--ink)') : 'var(--ink-faint)',
+      fontStyle: value ? 'normal' : 'italic', ...style,
+    }}>{value || placeholder || '—'}</span>
+  }
+  const Tag = multiline ? 'textarea' : 'input'
+  return <Tag autoFocus value={draft}
+    onChange={e => setDraft(e.target.value)}
+    onBlur={() => { setEditing(false); if (draft !== value) onCommit(draft) }}
+    onKeyDown={e => { if (e.key === 'Enter' && !multiline) e.target.blur(); if (e.key === 'Escape') { setDraft(value ?? ''); setEditing(false) }}}
+    placeholder={placeholder}
+    rows={multiline ? 3 : undefined}
+    style={{
+      ...style, background: 'var(--bg-soft)', border: '1px solid var(--rule)',
+      borderRadius: 4, padding: '4px 6px', width: '100%',
+      fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit',
+      resize: multiline ? 'vertical' : 'none', color: 'var(--ink)',
+    }}
+  />
+}
+
+function WeightSlider({ value, original, onChange, hue, ghostMark, height = 22, thumbSize = 14 }) {
+  const trackRef = useRef(null)
+  const [dragging, setDragging] = useState(false)
+  const color = hue != null ? `oklch(0.58 0.16 ${hue})` : 'var(--ink)'
+  const move = useCallback(cx => {
+    if (!trackRef.current) return
+    const r = trackRef.current.getBoundingClientRect()
+    const t = Math.max(0, Math.min(1, (cx - r.left) / r.width))
+    onChange(Math.round(t * 20) / 2)
+  }, [onChange])
+  useEffect(() => {
+    if (!dragging) return
+    const m = e => move(e.clientX)
+    const u = () => setDragging(false)
+    window.addEventListener('pointermove', m)
+    window.addEventListener('pointerup', u)
+    return () => { window.removeEventListener('pointermove', m); window.removeEventListener('pointerup', u) }
+  }, [dragging, move])
+  const showGhost = ghostMark && original != null && Math.abs(original - value) > 0.01
   return (
-    <input
-      type="text"
-      inputMode={inputMode}
-      value={draft}
-      placeholder={placeholder}
-      onChange={e => setDraft(e.target.value)}
-      onBlur={() => { if (draft !== value) onCommit(draft) }}
-      onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
-      className={className}
+    <div ref={trackRef}
+      onPointerDown={e => { setDragging(true); move(e.clientX) }}
+      style={{ position: 'relative', height, cursor: 'pointer', touchAction: 'none', userSelect: 'none' }}>
+      <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 3, marginTop: -1.5, background: 'var(--bg-inset)', border: '1px solid var(--rule)', borderRadius: 2 }} />
+      <div style={{ position: 'absolute', top: '50%', left: 0, marginTop: -1.5, width: `${(value / 10) * 100}%`, height: 3, background: color, borderRadius: 2, transition: dragging ? 'none' : 'width 180ms' }} />
+      {showGhost && <div style={{ position: 'absolute', top: 4, left: `calc(${(original / 10) * 100}% - 1px)`, width: 2, height: height - 8, background: 'var(--ink-faint)', opacity: 0.5 }} />}
+      <div style={{ position: 'absolute', top: `calc(50% - ${thumbSize / 2}px)`, left: `calc(${(value / 10) * 100}% - ${thumbSize / 2}px)`, width: thumbSize, height: thumbSize, background: color, borderRadius: 4, boxShadow: dragging ? `0 0 0 4px color-mix(in oklch, ${color} 25%, transparent)` : 'none', transition: dragging ? 'none' : 'left 180ms' }} />
+    </div>
+  )
+}
+
+function ScoreInput({ value, onChange, autoFocus }) {
+  const [draft, setDraft] = useState(value != null ? String(value) : '')
+  useEffect(() => setDraft(value != null ? String(value) : ''), [value])
+  const commit = () => {
+    if (draft === '') { if (value != null) onChange(null); return }
+    const n = parseFloat(draft)
+    if (!isNaN(n)) onChange(Math.max(0, Math.min(10, n)))
+    else setDraft(value != null ? String(value) : '')
+  }
+  return (
+    <input type="text" inputMode="decimal" value={draft} autoFocus={autoFocus}
+      onChange={e => setDraft(e.target.value.replace(/[^0-9.]/g, ''))}
+      onBlur={commit}
+      onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') { setDraft(value != null ? String(value) : ''); e.target.blur() }}}
+      placeholder="—"
+      style={{ width: '100%', padding: '4px 6px', fontFamily: 'Geist Mono, ui-monospace, monospace', fontSize: 13, border: '1px solid var(--rule)', borderRadius: 4, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}
     />
   )
 }
 
-// ===== components/ConfirmableDeleteButton.jsx =====
-function ConfirmableDeleteButton({ onConfirm, label = 'delete', size = 'sm' }) {
-  const [armed, setArmed] = useState(false)
-  const timerRef = useRef(null)
-
-  useEffect(() => {
-    if (armed) {
-      timerRef.current = setTimeout(() => setArmed(false), 3000)
-      const cancel = (e) => {
-        if (e.target.dataset?.confirmDelete !== 'true') setArmed(false)
-      }
-      document.addEventListener('click', cancel)
-      return () => {
-        clearTimeout(timerRef.current)
-        document.removeEventListener('click', cancel)
-      }
-    }
-  }, [armed])
-
-  const handleClick = (e) => {
-    e.stopPropagation()
-    if (armed) {
-      onConfirm()
-      setArmed(false)
-    } else {
-      setArmed(true)
-    }
+function RawInput({ value, onChange, unit, type, options }) {
+  const [draft, setDraft] = useState(value ?? '')
+  useEffect(() => setDraft(value ?? ''), [value])
+  if (type === 'categorical' && options?.length) {
+    return (
+      <select value={value ?? ''} onChange={e => onChange(e.target.value || null)}
+        style={{ width: '100%', padding: '4px 6px', fontSize: 12, border: '1px solid var(--rule)', borderRadius: 4, background: 'var(--bg)', appearance: 'none', color: 'var(--ink)' }}>
+        <option value="">—</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    )
   }
-
   return (
-    <button
-      onClick={handleClick}
-      data-confirm-delete="true"
-      title={armed ? `click again to ${label}` : label}
-      className={
-        armed
-          ? 'font-mono text-[10px] uppercase tracking-wider text-amber border border-amber/60 bg-amber/10 px-1.5 py-0.5'
-          : 'font-mono text-sm text-muted hover:text-amber transition'
-      }
-    >
-      {armed ? 'confirm?' : '×'}
-    </button>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <input type="text" value={draft} onChange={e => setDraft(e.target.value)}
+        onBlur={() => draft !== value && onChange(draft || null)}
+        onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
+        placeholder="raw evidence"
+        style={{ width: '100%', padding: '4px 6px', fontFamily: 'Geist Mono, ui-monospace, monospace', fontSize: 11, border: '1px solid var(--rule)', borderRadius: 4, color: 'var(--ink-soft)' }}
+      />
+      {unit && <span className="label" style={{ flexShrink: 0 }}>{unit}</span>}
+    </div>
   )
 }
 
-// ===== components/MatrixActionButton.jsx =====
-function MatrixActionButton({ label, onClick, title }) {
+// =============================================================================
+// HEADER
+// =============================================================================
+function TopHeader({ middle, onHome, onNew }) {
   return (
-    <button
-      onClick={(e) => { e.stopPropagation(); onClick() }}
-      title={title || label}
-      className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber transition px-1"
-    >
-      {label}
-    </button>
-  )
-}
-
-// ===== components/Header.jsx =====
-function Header({ onHomeClick }) {
-  return (
-    <header className="border-b border-rule px-8 py-6 flex items-baseline justify-between">
-      <button onClick={onHomeClick} className="flex items-baseline gap-4 hover:opacity-80 transition">
-        <span className="font-display text-5xl text-amber leading-none">Σ</span>
-        <div className="text-left">
-          <h1 className="font-display text-2xl tracking-tight">Sigma</h1>
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mt-0.5">decisions, weighted</p>
-        </div>
-      </button>
-      <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted hidden sm:block">
-        anti-bias decision engine
+    <header style={{
+      padding: '12px 20px', borderBottom: '1px solid var(--rule)',
+      display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 16,
+      background: 'var(--bg)', position: 'sticky', top: 0, zIndex: 30, backdropFilter: 'blur(8px)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button onClick={onHome} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', padding: 0 }}>
+          <div style={{ width: 24, height: 24, background: 'var(--ink)', color: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 14, borderRadius: 5 }}>Σ</div>
+          <span style={{ fontWeight: 600, fontSize: 15, letterSpacing: '-0.01em' }}>Sigma</span>
+        </button>
+        <span style={{ width: 1, height: 14, background: 'var(--rule)' }} />
+        <span className="label">decisions, decomposed</span>
+      </div>
+      <div style={{ textAlign: 'center', minWidth: 0 }}>{middle}</div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
+        <button className="btn btn-outline btn-sm" onClick={onNew}>
+          <span style={{ fontSize: 14, lineHeight: 1 }}>+</span> New
+        </button>
+        <AccentMenu />
       </div>
     </header>
   )
 }
 
-// ===== components/DecisionCard.jsx + NewDecisionCard.jsx =====
-function DecisionCard({ decision, onClick }) {
-  const isUntitled = !decision.title?.trim()
+function AccentMenu() {
+  const [open, setOpen] = useState(false)
+  const cur = localStorage.getItem('sigma_accent') || 'green'
   return (
-    <button
-      onClick={onClick}
-      className="text-left border border-rule border-l-2 border-l-amber/30 hover:border-l-amber hover:bg-amber/[0.04] p-5 transition group flex flex-col min-h-[160px]"
-    >
-      <div className="flex items-baseline justify-between mb-2">
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted group-hover:text-amber/80 transition">decision</span>
-        <span className="font-mono text-[10px] text-muted/60">
-          {new Date(decision.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-        </span>
-      </div>
-      <h3 className={`font-display text-xl leading-tight mb-3 ${isUntitled ? 'text-muted italic' : ''}`}>
-        {decision.title?.trim() || 'untitled'}
-      </h3>
-      <div className="mt-auto pt-3 border-t border-rule/40">
-        {decision._leading ? (
-          <div className="flex items-baseline justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="font-mono text-[10px] uppercase tracking-wider text-muted/70 mb-0.5">leading</div>
-              <div className="font-sans text-sm text-amber truncate">{decision._leading.name}</div>
-            </div>
-            <div className="font-mono text-base text-amber tabular-nums">{decision._leading.total.toFixed(2)}</div>
+    <div style={{ position: 'relative' }}>
+      <button onClick={() => setOpen(o => !o)} className="iconbtn" title="theme">
+        <span style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--accent)' }} />
+      </button>
+      {open && (
+        <div onMouseLeave={() => setOpen(false)} style={{
+          position: 'absolute', top: 36, right: 0, background: 'var(--bg)', border: '1px solid var(--rule)',
+          borderRadius: 8, padding: 10, zIndex: 100, boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          display: 'flex', gap: 6, flexDirection: 'column', minWidth: 130,
+        }}>
+          <div className="label">accent</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {ACCENT_OPTIONS.map(a => (
+              <button key={a.name} onClick={() => { applyAccent(a.hue); localStorage.setItem('sigma_accent', a.name); setOpen(false) }}
+                style={{ width: 26, height: 26, borderRadius: 6, border: cur === a.name ? '2px solid var(--ink)' : '1px solid var(--rule)', background: `oklch(0.58 0.16 ${a.hue})`, cursor: 'pointer' }} title={a.name} />
+            ))}
           </div>
-        ) : (
-          <div className="font-mono text-[10px] uppercase tracking-wider text-muted/60">
-            {decision._parameterCount} param · {decision._optionCount} options
-          </div>
-        )}
-      </div>
-    </button>
-  )
-}
-
-function NewDecisionCard({ onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="text-left border border-dashed border-rule/60 hover:border-amber hover:bg-amber/[0.04] p-5 transition group flex flex-col justify-between min-h-[160px]"
-    >
-      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted/70 group-hover:text-amber transition">new</span>
-      <div className="font-display text-xl text-muted group-hover:text-amber transition">+ new decision</div>
-    </button>
-  )
-}
-
-// ===== components/HomeView.jsx =====
-function HomeView({ decisions, onSelect, onNew, loading }) {
-  return (
-    <main className="px-8 py-10 max-w-6xl mx-auto flex-1 w-full">
-      <div className="mb-8 flex items-baseline justify-between pb-3 border-b border-rule">
-        <h2 className="font-mono text-[11px] uppercase tracking-[0.25em] text-muted">your decisions</h2>
-        <span className="font-mono text-[11px] text-muted">{decisions.length} active</span>
-      </div>
-      {loading ? (
-        <div className="font-mono text-xs text-muted py-12">loading…</div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {decisions.map(d => (
-            <DecisionCard key={d.id} decision={d} onClick={() => onSelect(d.id)} />
-          ))}
-          <NewDecisionCard onClick={onNew} />
         </div>
       )}
-    </main>
+    </div>
   )
 }
 
-// ===== components/SectionHeader.jsx =====
-function SectionHeader({ title, meta }) {
+// =============================================================================
+// HOME
+// =============================================================================
+function Home({ decisions, onOpen, onNew, loading }) {
+  const open = decisions.filter(d => d.status !== 'closed' && d.status !== 'archived')
+  const closed = decisions.filter(d => d.status === 'closed')
   return (
-    <div className="flex items-baseline justify-between mb-4 pb-2 border-b border-rule">
-      <h2 className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted">{title}</h2>
-      {meta && <span className="font-mono text-[10px] text-muted">{meta}</span>}
+    <div>
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 28px 64px' }}>
+        <div style={{ marginBottom: 36 }}>
+          <span className="label">{open.length} open · {closed.length} closed · {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+          <h1 style={{ fontSize: 'clamp(32px, 4.5vw, 52px)', fontWeight: 500, letterSpacing: '-0.02em', margin: '12px 0 0', lineHeight: 1.05, maxWidth: 760 }}>
+            {open.length === 0 ? 'No questions on your desk.' : `${open.length} ${open.length === 1 ? 'question' : 'questions'} on your desk.`}{' '}
+            <span style={{ color: 'var(--ink-faint)' }}>{open.length === 0 ? 'Open a new one when something is weighing on you.' : 'Make one of them a little less heavy today.'}</span>
+          </h1>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+          <span className="label">open</span>
+          <button className="btn btn-primary" onClick={onNew}>
+            <span style={{ fontSize: 15, lineHeight: 1 }}>+</span> New decision
+          </button>
+        </div>
+        <div style={{ border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '36px 2.6fr 1.7fr 1.4fr 70px', gap: 16, padding: '11px 18px', background: 'var(--bg-soft)', borderBottom: '1px solid var(--rule)' }}>
+            <span className="label">#</span><span className="label">question</span><span className="label">leading</span><span className="label">progress</span><span className="label" style={{ textAlign: 'right' }}>age</span>
+          </div>
+          {loading ? (
+            <div style={{ padding: 48, textAlign: 'center' }}><span className="label">loading…</span></div>
+          ) : open.length === 0 ? (
+            <div style={{ padding: 48, textAlign: 'center' }}><span className="label">no open decisions yet</span></div>
+          ) : (
+            open.map((d, i) => <HomeRow key={d.id} d={d} idx={i + 1} onClick={() => onOpen(d.id)} />)
+          )}
+        </div>
+        {closed.length > 0 && (
+          <div style={{ marginTop: 40 }}>
+            <span className="label">recently closed</span>
+            <div style={{ marginTop: 12, border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg-soft)' }}>
+              {closed.map(d => (
+                <div key={d.id} onClick={() => onOpen(d.id)} style={{ display: 'grid', gridTemplateColumns: '36px 2.6fr 1.7fr 1.4fr 70px', gap: 16, alignItems: 'center', padding: '14px 18px', opacity: 0.75, borderBottom: '1px solid var(--rule-soft)', cursor: 'pointer' }}>
+                  <span className="mono" style={{ fontSize: 11, color: 'var(--ink-faint)' }}>—</span>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>{d.title || <em style={{ color: 'var(--ink-faint)' }}>untitled</em>}</div>
+                    <span className="label" style={{ marginTop: 3, display: 'block' }}>{d.type || 'custom'} · closed</span>
+                  </div>
+                  <span className="label">picked</span>
+                  <span className="label">complete</span>
+                  <span />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}
+
+function HomeRow({ d, idx, onClick }) {
+  const [hover, setHover] = useState(false)
+  const ranked = rankedOptions(d._options, d._scores, d._parameters)
+  const leading = ranked[0] && ranked[0]._total != null ? ranked[0] : null
+  const runner  = ranked[1] && ranked[1]._total != null ? ranked[1] : null
+  const gap = leading && runner ? leading._total - runner._total : null
+  const c = completeness(d._parameters, d._options, d._scores)
+  const daysOpen = Math.max(1, Math.floor((Date.now() - new Date(d.created_at).getTime()) / 86400000))
+  const statusLabel = c.pct >= 0.7 ? 'ready to choose' : c.pct >= 0.35 ? 'still gathering' : 'just started'
+  return (
+    <div onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{ display: 'grid', gridTemplateColumns: '36px 2.6fr 1.7fr 1.4fr 70px', gap: 16, alignItems: 'center', padding: '18px 18px', borderBottom: '1px solid var(--rule-soft)', cursor: 'pointer', background: hover ? 'var(--bg-soft)' : 'transparent', transition: 'background 120ms' }}>
+      <span className="mono" style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{String(idx).padStart(2, '0')}</span>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 15, fontWeight: 500 }}>{d.title?.trim() || <em style={{ color: 'var(--ink-faint)' }}>untitled question</em>}</span>
+          {gap != null && gap < 0.6 && <Pill color="var(--neg)">tight</Pill>}
+          {c.pct === 0 && <Pill color="var(--ink-faint)">empty</Pill>}
+        </div>
+        <span className="label" style={{ marginTop: 4, display: 'block' }}>{d.type || 'custom'} · {d._parameters.length}p × {d._options.length}o</span>
+      </div>
+      {leading ? (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>{leading.name || 'unnamed'}</span>
+            <span className="mono" style={{ fontSize: 13, color: 'var(--accent)' }}>{leading._total.toFixed(2)}</span>
+          </div>
+          {gap != null && <span className="label" style={{ marginTop: 4, display: 'block' }}>+{gap.toFixed(2)} ahead</span>}
+        </div>
+      ) : (<span className="label">no scores yet</span>)}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ flex: 1, height: 4, background: 'var(--rule-soft)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ width: `${c.pct * 100}%`, height: '100%', background: c.pct >= 0.7 ? 'var(--accent)' : 'var(--ink)', transition: 'width 300ms' }} />
+          </div>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', minWidth: 32, textAlign: 'right' }}>{Math.round(c.pct * 100)}%</span>
+        </div>
+        <span className="label" style={{ marginTop: 6, display: 'block' }}>{statusLabel}</span>
+      </div>
+      <span className="mono" style={{ fontSize: 11, color: 'var(--ink-faint)', textAlign: 'right' }}>{daysOpen}d</span>
+    </div>
+  )
+}
+
+// =============================================================================
+// DECISION VIEW
+// =============================================================================
+function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, optionHandlers, onScoreUpdate, onOpenMode }) {
+  const [overrides, setOverrides] = useState(null)
+  const [highlight, setHighlight] = useState(null)
+
+  const ranked = useMemo(() => rankedOptions(data.options, data.scores, data.parameters, overrides), [data, overrides])
+  const baseline = useMemo(() => rankedOptions(data.options, data.scores, data.parameters), [data])
+  const top = ranked[0]; const runner = ranked[1]
+  const gap = top && runner && top._total != null && runner._total != null ? top._total - runner._total : null
+  const c = completeness(data.parameters, data.options, data.scores)
+  const robust = useMemo(() => robustness(data.parameters, data.options, data.scores), [data])
+  const isWhatIf = overrides != null
+
+  const paramHues = [145, 30, 260, 75, 320, 200, 60, 290, 175, 240]
+  const paramColors = {}
+  data.parameters.forEach((pp, i) => { paramColors[pp.id] = `oklch(0.62 0.13 ${paramHues[i % paramHues.length]})` })
+
+  const maxContrib = Math.max(1, ...data.options.map(o =>
+    data.parameters.reduce((s, p) => s + paramContribution(o.id, p.id, data.scores, data.parameters, overrides), 0)
+  ))
+
+  return (
+    <div>
+      {/* WEIGHT STRIP */}
+      <div style={{ background: isWhatIf ? 'var(--hi-soft)' : 'var(--bg-inset)', borderBottom: `1px solid ${isWhatIf ? 'var(--hi)' : 'var(--rule)'}`, padding: '14px 28px', transition: 'background 200ms' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 18, alignItems: 'center' }}>
+          <div style={{ minWidth: 90 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="label" style={isWhatIf ? { color: 'var(--hi)' } : undefined}>weights</span>
+              {isWhatIf && <Pill color="var(--hi)">what-if</Pill>}
+            </div>
+            <div style={{ marginTop: 3, fontSize: 11, color: 'var(--ink-soft)' }}>{isWhatIf ? 'temporary' : 'drag to rebalance'}</div>
+          </div>
+          {data.parameters.length === 0 ? (
+            <span className="label" style={{ paddingLeft: 12 }}>add a parameter to start weighting</span>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${data.parameters.length}, minmax(0, 1fr))`, gap: 14 }}>
+              {data.parameters.map(pp => {
+                const cur = overrides?.[pp.id] ?? Number(pp.weight)
+                const over = overrides?.[pp.id] != null && Math.abs(overrides[pp.id] - Number(pp.weight)) > 0.01
+                return (
+                  <div key={pp.id} onMouseEnter={() => setHighlight(pp.id)} onMouseLeave={() => setHighlight(null)}
+                    style={{ padding: '6px 8px 8px', borderRadius: 5, background: highlight === pp.id ? 'var(--bg)' : 'transparent', transition: 'background 150ms' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 }}>
+                      <span style={{ fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pp.name}</span>
+                      <span className="mono" style={{ fontSize: 11, color: over ? 'var(--hi)' : 'var(--ink-soft)' }}>{cur.toFixed(0)}</span>
+                    </div>
+                    <WeightSlider value={cur} original={Number(pp.weight)} ghostMark={isWhatIf} hue={over ? 260 : 240}
+                      onChange={v => {
+                        if (isWhatIf) setOverrides(prev => ({ ...prev, [pp.id]: v }))
+                        else if (Math.abs(v - Number(pp.weight)) > 0.01) setOverrides({ [pp.id]: v })
+                      }}
+                    />
+                    <div style={{ marginTop: 4, height: 2, borderRadius: 1, background: paramColors[pp.id], opacity: 0.6 }} />
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {isWhatIf && <button className="btn btn-outline btn-sm" onClick={() => setOverrides(null)}>Reset</button>}
+            {isWhatIf && <button className="btn btn-primary btn-sm" onClick={async () => {
+              for (const [pid, w] of Object.entries(overrides)) await paramHandlers.onUpdate(pid, { weight: w })
+              setOverrides(null)
+            }}>Save as weights</button>}
+          </div>
+        </div>
+      </div>
+
+      <main style={{ maxWidth: 1280, margin: '0 auto', padding: '28px 28px 80px' }}>
+        {/* title + actions */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 24 }}>
+          <div style={{ flex: '1 1 320px' }}>
+            <button className="btn btn-ghost btn-sm" onClick={onBack} style={{ marginLeft: -10, marginBottom: 4 }}>← all decisions</button>
+            <h1 style={{ margin: 0, fontSize: 'clamp(24px, 3vw, 38px)', fontWeight: 500, letterSpacing: '-0.02em' }}>
+              <InlineText value={decision.title} onCommit={onTitleUpdate} placeholder="What are you deciding?" />
+            </h1>
+            <div style={{ marginTop: 6 }}><span className="label">started {new Date(decision.created_at).toLocaleDateString()}</span></div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn btn-outline btn-sm" onClick={() => onOpenMode('blind')}>Blind score mode</button>
+            <button className="btn btn-outline btn-sm" onClick={() => onOpenMode('whatif')}>What-if</button>
+          </div>
+        </div>
+
+        {/* STANDINGS */}
+        <section style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+              <span className="label">standings · weighted total</span>
+              {gap != null && gap < 0.6 && <Pill color="var(--neg)">tight · only {gap.toFixed(2)} ahead</Pill>}
+              {robust != null && (
+                <Pill color={robust >= 0.7 ? 'var(--accent)' : robust >= 0.4 ? 'var(--warn)' : 'var(--neg)'}>
+                  robustness {robust.toFixed(2)}
+                </Pill>
+              )}
+            </div>
+            <span className="label">contribution stacks by parameter · {c.filled}/{c.total} considered</span>
+          </div>
+
+          {data.options.length === 0 && data.parameters.length === 0 ? (
+            <EmptyState onAddParam={paramHandlers.onAdd} onAddOption={optionHandlers.onAdd} />
+          ) : (
+            <div style={{ border: '1px solid var(--rule)', background: 'var(--bg)', borderRadius: 8, overflow: 'hidden' }}>
+              {ranked.map((o, i) => (
+                <LeaderRow key={o.id} option={o} rank={i} parameters={data.parameters} scores={data.scores}
+                  paramColors={paramColors} maxContrib={maxContrib} overrides={overrides}
+                  highlight={highlight} onHighlight={setHighlight}
+                  baselineRank={baseline.findIndex(x => x.id === o.id)} isWhatIf={isWhatIf}
+                  onRename={v => optionHandlers.onUpdate(o.id, { name: v })}
+                  onDelete={() => optionHandlers.onDelete(o.id)}
+                />
+              ))}
+              <AddOptionRow onAdd={optionHandlers.onAdd} />
+              <Legend parameters={data.parameters} paramColors={paramColors} highlight={highlight} onHighlight={setHighlight} overrides={overrides} />
+            </div>
+          )}
+        </section>
+
+        {/* MATRIX */}
+        {(data.parameters.length > 0 || data.options.length > 0) && (
+          <section>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+              <span className="label">matrix · click a cell to edit</span>
+              <span className="label">{c.total - c.filled} empty</span>
+            </div>
+            <div style={{ border: '1px solid var(--rule)', borderRadius: 8, background: 'var(--bg)', overflow: 'auto' }}>
+              <Matrix parameters={data.parameters} options={data.options} scores={data.scores}
+                paramColors={paramColors} highlight={highlight} setHighlight={setHighlight}
+                onScoreUpdate={onScoreUpdate} paramHandlers={paramHandlers} optionHandlers={optionHandlers}
+              />
+            </div>
+          </section>
+        )}
+      </main>
+    </div>
+  )
+}
+
+// ── empty state ───
+function EmptyState({ onAddParam, onAddOption }) {
+  const [pDraft, setPDraft] = useState('')
+  const [oDraft, setODraft] = useState('')
+  return (
+    <div style={{ border: '1px dashed var(--rule)', borderRadius: 8, padding: 32, background: 'var(--bg-soft)' }}>
+      <p style={{ fontSize: 14, color: 'var(--ink-soft)', marginTop: 0, marginBottom: 16 }}>
+        Empty matrix. Add <strong>parameters</strong> (what matters to you) and <strong>options</strong> (what you're comparing).
+      </p>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <input value={pDraft} onChange={e => setPDraft(e.target.value)} placeholder="+ first parameter…"
+          onKeyDown={e => { if (e.key === 'Enter' && pDraft.trim()) { onAddParam(pDraft.trim()); setPDraft('') }}}
+          style={{ padding: '8px 12px', border: '1px solid var(--rule)', borderRadius: 6, fontSize: 13, minWidth: 200, color: 'var(--ink)' }} />
+        <input value={oDraft} onChange={e => setODraft(e.target.value)} placeholder="+ first option…"
+          onKeyDown={e => { if (e.key === 'Enter' && oDraft.trim()) { onAddOption(oDraft.trim()); setODraft('') }}}
+          style={{ padding: '8px 12px', border: '1px solid var(--rule)', borderRadius: 6, fontSize: 13, minWidth: 200, color: 'var(--ink)' }} />
+      </div>
+    </div>
+  )
+}
+
+function LeaderRow({ option, rank, parameters, scores, paramColors, maxContrib, overrides, highlight, onHighlight, baselineRank, isWhatIf, onRename, onDelete }) {
+  const [hover, setHover] = useState(false)
+  const isTop = rank === 0
+  const shift = baselineRank - rank
+  const parts = parameters.map(p => ({ p, contrib: paramContribution(option.id, p.id, scores, parameters, overrides) }))
+  const total = parts.reduce((s, x) => s + x.contrib, 0)
+  return (
+    <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{ display: 'grid', gridTemplateColumns: '40px 1fr 100px 36px', gap: 16, alignItems: 'center', padding: '18px 22px', borderBottom: '1px solid var(--rule-soft)',
+        background: isTop ? (isWhatIf ? 'var(--hi-soft)' : 'var(--accent-soft)') : (hover ? 'var(--bg-soft)' : 'transparent'), transition: 'background 150ms' }}>
+      <span className="mono" style={{ fontSize: 22, fontWeight: 600, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent)') : 'var(--ink-faint)' }}>{String(rank + 1).padStart(2, '0')}</span>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 16, fontWeight: 500 }}>
+            <InlineText value={option.name} onCommit={onRename} placeholder="option" style={{ fontSize: 16, fontWeight: 500 }} />
+          </span>
+          {isTop && <Pill color={isWhatIf ? 'var(--hi)' : 'var(--accent)'}>leading</Pill>}
+          {shift > 0 && <Pill color="var(--accent)">↑{shift}</Pill>}
+          {shift < 0 && <Pill color="var(--neg)">↓{Math.abs(shift)}</Pill>}
+        </div>
+        <div style={{ height: isTop ? 14 : 10, width: `${Math.max(6, (total / maxContrib) * 100)}%`, display: 'flex', borderRadius: 3, overflow: 'hidden', minWidth: 16, transition: 'width 320ms ease-out', boxShadow: '0 0 0 1px var(--rule-soft)' }}>
+          {parts.map(({ p, contrib }) => contrib > 0 && (
+            <div key={p.id} title={`${p.name}: ${contrib.toFixed(1)}`}
+              onMouseEnter={() => onHighlight(p.id)} onMouseLeave={() => onHighlight(null)}
+              style={{ width: `${(contrib / total) * 100}%`, height: '100%', background: paramColors[p.id],
+                opacity: highlight == null || highlight === p.id ? 1 : 0.18,
+                transition: 'opacity 150ms, width 320ms ease-out' }} />
+          ))}
+        </div>
+      </div>
+      <div style={{ textAlign: 'right' }}>
+        <span className="mono" style={{ fontSize: 26, fontWeight: 500, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent)') : 'var(--ink)' }}>
+          {option._total != null ? option._total.toFixed(2) : '—'}
+        </span>
+        <div style={{ marginTop: 2 }}><span className="label">of 10</span></div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        {hover && <button className="iconbtn" onClick={onDelete} title="remove option">×</button>}
+      </div>
+    </div>
+  )
+}
+
+function Legend({ parameters, paramColors, highlight, onHighlight, overrides }) {
+  return (
+    <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', padding: '12px 22px', borderTop: '1px solid var(--rule-soft)', background: 'var(--bg-soft)' }}>
+      {parameters.map(pp => {
+        const cur = overrides?.[pp.id] ?? Number(pp.weight)
+        return (
+          <button key={pp.id} onMouseEnter={() => onHighlight(pp.id)} onMouseLeave={() => onHighlight(null)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', padding: 0,
+              opacity: highlight == null || highlight === pp.id ? 1 : 0.35, transition: 'opacity 150ms' }}>
+            <span style={{ width: 10, height: 10, borderRadius: 2, background: paramColors[pp.id] }} />
+            <span style={{ fontSize: 11, color: 'var(--ink-soft)' }}>{pp.name}</span>
+            <span className="mono" style={{ fontSize: 10, color: 'var(--ink-faint)' }}>w{cur.toFixed(0)}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function AddOptionRow({ onAdd }) {
+  const [draft, setDraft] = useState('')
+  const commit = () => { if (draft.trim()) { onAdd(draft.trim()); setDraft('') } }
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 100px 36px', gap: 16, alignItems: 'center', padding: '14px 22px', borderBottom: '1px solid var(--rule-soft)', background: 'var(--bg-soft)' }}>
+      <span className="label">+</span>
+      <input value={draft} onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') commit() }} onBlur={commit}
+        placeholder="add an option to compare…"
+        style={{ border: 'none', padding: 0, fontSize: 14, color: 'var(--ink)', width: '100%' }} />
+      <span className="label">enter</span><span />
     </div>
   )
 }
@@ -303,71 +706,296 @@ function SectionHeader({ title, meta }) {
 // =============================================================================
 // MATRIX
 // =============================================================================
-
-function ScoreBar({ value }) {
-  const pct = value == null ? 0 : Math.max(0, Math.min(100, (Number(value) / 10) * 100))
+function Matrix({ parameters, options, scores, paramColors, highlight, setHighlight, onScoreUpdate, paramHandlers, optionHandlers }) {
+  const [addParamDraft, setAddParamDraft] = useState('')
   return (
-    <div className="flex-1 h-px bg-rule/60 relative">
-      {value != null && (
-        <div className="absolute left-0 top-0 h-px bg-amber transition-all" style={{ width: `${pct}%` }} />
+    <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 720 }}>
+      <thead>
+        <tr style={{ background: 'var(--bg-soft)', borderBottom: '1px solid var(--rule)' }}>
+          <th style={{ padding: '12px 18px', textAlign: 'left', minWidth: 200, position: 'sticky', left: 0, background: 'var(--bg-soft)', zIndex: 2 }}><span className="label">consideration</span></th>
+          <th style={{ padding: '12px 12px', textAlign: 'left', width: 60 }}><span className="label">w</span></th>
+          {options.map(o => (
+            <th key={o.id} style={{ padding: '12px 12px', textAlign: 'left', minWidth: 160 }}>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>
+                <InlineText value={o.name} onCommit={v => optionHandlers.onUpdate(o.id, { name: v })} placeholder="option" style={{ fontSize: 13, fontWeight: 500 }} />
+              </div>
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {parameters.map(pp => {
+          const isHi = highlight === pp.id
+          return (
+            <tr key={pp.id} onMouseEnter={() => setHighlight(pp.id)} onMouseLeave={() => setHighlight(null)}
+              style={{ borderTop: '1px solid var(--rule-soft)', background: isHi ? 'var(--bg-soft)' : 'transparent', transition: 'background 150ms' }}>
+              <td style={{ padding: '12px 18px', position: 'sticky', left: 0, background: isHi ? 'var(--bg-soft)' : 'var(--bg)', zIndex: 1 }}>
+                <ParameterRow parameter={pp} color={paramColors[pp.id]} onUpdate={fields => paramHandlers.onUpdate(pp.id, fields)} onDelete={() => paramHandlers.onDelete(pp.id)} />
+              </td>
+              <td style={{ padding: '12px 12px' }}>
+                <input type="number" min="0" max="10" step="0.5" value={pp.weight}
+                  onChange={e => paramHandlers.onUpdate(pp.id, { weight: parseFloat(e.target.value) || 0 })}
+                  style={{ width: 48, fontFamily: 'Geist Mono, monospace', fontSize: 13, border: '1px solid var(--rule)', borderRadius: 4, padding: '3px 6px', color: 'var(--ink)' }} />
+              </td>
+              {options.map(o => (
+                <Cell key={o.id} param={pp} option={o}
+                  score={scores.find(s => s.option_id === o.id && s.parameter_id === pp.id)}
+                  onUpdate={fields => onScoreUpdate(o.id, pp.id, fields)}
+                  allOptions={options} allScores={scores} parameters={parameters} />
+              ))}
+            </tr>
+          )
+        })}
+        <tr style={{ borderTop: '1px solid var(--rule-soft)' }}>
+          <td colSpan={2 + options.length} style={{ padding: '12px 18px', background: 'var(--bg-soft)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span className="label">+</span>
+              <input value={addParamDraft} onChange={e => setAddParamDraft(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && addParamDraft.trim()) { paramHandlers.onAdd(addParamDraft.trim()); setAddParamDraft('') }}}
+                placeholder="add a consideration…"
+                style={{ border: 'none', padding: 0, fontSize: 14, color: 'var(--ink)', flex: 1 }} />
+              <span className="label">enter</span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  )
+}
+
+function ParameterRow({ parameter, color, onUpdate, onDelete }) {
+  const [showType, setShowType] = useState(false)
+  const options = Array.isArray(parameter.options) ? parameter.options : []
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+      <span style={{ width: 4, height: 20, background: color, borderRadius: 1, flexShrink: 0, marginTop: 2 }} />
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 500 }}>
+          <InlineText value={parameter.name} onCommit={v => onUpdate({ name: v })} placeholder="parameter" style={{ fontSize: 13, fontWeight: 500 }} />
+        </div>
+        <button onClick={() => setShowType(s => !s)} className="label" style={{ background: 'none', border: 'none', padding: '2px 0', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ opacity: 0.6 }}>{showType ? '▾' : '▸'}</span>
+          {parameter.input_type || 'text'}{parameter.unit ? ` · ${parameter.unit}` : ''}{parameter.input_type === 'categorical' ? ` · ${options.length} opts` : ''}
+        </button>
+        {showType && (
+          <div style={{ marginTop: 8, padding: 10, background: 'var(--bg-inset)', borderRadius: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+              <span className="label" style={{ fontSize: 9 }}>type</span>
+              <select value={parameter.input_type || 'text'} onChange={e => {
+                const t = e.target.value
+                const u = { input_type: t }
+                if (t !== 'number') u.unit = null
+                if (t === 'categorical' && options.length === 0) u.options = ['', '']
+                if (t !== 'categorical') u.options = null
+                onUpdate(u)
+              }} style={{ fontSize: 11, border: '1px solid var(--rule)', borderRadius: 3, padding: '2px 4px', background: 'var(--bg)', color: 'var(--ink)' }}>
+                <option value="text">text</option>
+                <option value="number">number</option>
+                <option value="categorical">categorical</option>
+              </select>
+            </div>
+            {parameter.input_type === 'number' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                <span className="label" style={{ fontSize: 9 }}>unit</span>
+                <input value={parameter.unit || ''} onChange={e => onUpdate({ unit: e.target.value })}
+                  placeholder="e.g. 万円, %, h"
+                  style={{ fontSize: 11, border: '1px solid var(--rule)', borderRadius: 3, padding: '2px 4px', color: 'var(--ink)' }} />
+              </div>
+            )}
+            {parameter.input_type === 'categorical' && (
+              <div>
+                <div className="label" style={{ fontSize: 9, marginBottom: 4 }}>options</div>
+                {options.map((opt, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+                    <input value={opt} onChange={e => { const n = [...options]; n[i] = e.target.value; onUpdate({ options: n }) }}
+                      style={{ flex: 1, fontSize: 11, border: '1px solid var(--rule)', borderRadius: 3, padding: '2px 4px', color: 'var(--ink)' }} />
+                    <button onClick={() => onUpdate({ options: options.filter((_, j) => j !== i) })} className="iconbtn" style={{ width: 20, height: 20, fontSize: 11 }}>×</button>
+                  </div>
+                ))}
+                <button className="label" onClick={() => onUpdate({ options: [...options, ''] })} style={{ background: 'none', border: 'none', padding: 0 }}>+ add option</button>
+              </div>
+            )}
+            <button className="iconbtn" onClick={onDelete} title="delete parameter" style={{ color: 'var(--neg)', marginTop: 6 }}>delete row</button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Score slider — drag 0–10 with visible value. Variant of WeightSlider sized
+// to fit inside a matrix cell.
+function ScoreSlider({ value, onChange }) {
+  const trackRef = useRef(null)
+  const [dragging, setDragging] = useState(false)
+  const v = value ?? null
+  const move = useCallback(cx => {
+    if (!trackRef.current) return
+    const r = trackRef.current.getBoundingClientRect()
+    const t = Math.max(0, Math.min(1, (cx - r.left) / r.width))
+    onChange(Math.round(t * 20) / 2)
+  }, [onChange])
+  useEffect(() => {
+    if (!dragging) return
+    const m = e => move(e.clientX)
+    const u = () => setDragging(false)
+    window.addEventListener('pointermove', m)
+    window.addEventListener('pointerup', u)
+    return () => { window.removeEventListener('pointermove', m); window.removeEventListener('pointerup', u) }
+  }, [dragging, move])
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div ref={trackRef}
+        onPointerDown={e => { setDragging(true); move(e.clientX) }}
+        style={{ position: 'relative', flex: 1, height: 22, cursor: 'pointer', touchAction: 'none', userSelect: 'none' }}>
+        {/* track */}
+        <div style={{ position: 'absolute', top: 10, left: 0, right: 0, height: 2, background: 'var(--rule)', borderRadius: 1 }} />
+        {/* fill (0 if unset) */}
+        {v != null && (
+          <div style={{ position: 'absolute', top: 10, left: 0, height: 2, width: `${(v / 10) * 100}%`, background: 'var(--accent)', borderRadius: 1, transition: dragging ? 'none' : 'width 180ms' }} />
+        )}
+        {/* tick marks at 0, 5, 10 */}
+        {[0, 5, 10].map(t => (
+          <div key={t} style={{ position: 'absolute', top: 7, left: `${(t / 10) * 100}%`, width: 1, height: 8, background: 'var(--ink-ghost)' }} />
+        ))}
+        {/* thumb */}
+        {v != null ? (
+          <div style={{ position: 'absolute', top: 4, left: `calc(${(v / 10) * 100}% - 7px)`, width: 14, height: 14, background: 'var(--accent)', border: '2px solid var(--bg)', borderRadius: '50%', boxShadow: dragging ? '0 0 0 4px color-mix(in oklch, var(--accent) 25%, transparent)' : '0 0 0 1px var(--accent)', transition: dragging ? 'none' : 'left 180ms' }} />
+        ) : (
+          // empty thumb hint at the start
+          <div style={{ position: 'absolute', top: 4, left: -7, width: 14, height: 14, background: 'transparent', border: '2px dashed var(--ink-ghost)', borderRadius: '50%' }} />
+        )}
+      </div>
+      <span className="mono" style={{ fontSize: 12, color: v != null ? 'var(--accent)' : 'var(--ink-faint)', minWidth: 26, textAlign: 'right', fontWeight: 500 }}>
+        {v != null ? v.toFixed(1) : '—'}
+      </span>
+      {v != null && (
+        <button onClick={() => onChange(null)} title="clear"
+          style={{ background: 'transparent', border: 'none', color: 'var(--ink-ghost)', padding: 0, width: 14, height: 14, fontSize: 11, lineHeight: 1 }}>×</button>
       )}
     </div>
   )
 }
 
-function TextRawInput({ value, onCommit }) {
-  return (
-    <EditableText
-      value={value}
-      onCommit={onCommit}
-      placeholder="—"
-      className="font-sans text-xs w-full text-paper/90 leading-relaxed"
-    />
-  )
+// AI cross-check — asks Claude to challenge the user's rating given the
+// parameter, option, raw evidence, and current score. Inline popover.
+//
+// Calls one of two endpoints, whichever responds:
+//   1. window.claude.complete — present in claude.ai artifacts (dev/preview)
+//   2. <SUPABASE_URL>/functions/v1/cross-check — production
+//      (deploy supabase/functions/cross-check/index.ts; see README at bottom)
+async function askClaude(prompt) {
+  // 1. artifact helper (dev only)
+  if (typeof window !== 'undefined' && window.claude?.complete) {
+    return await window.claude.complete(prompt)
+  }
+  // 2. production: call your Supabase Edge Function
+  const url = `${SUPABASE_URL}/functions/v1/cross-check`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({ prompt }),
+  })
+  if (!res.ok) throw new Error(`cross-check ${res.status}: ${await res.text()}`)
+  const data = await res.json()
+  return data.text || data.content || ''
 }
 
-function NumberRawInput({ value, unit, onCommit }) {
-  return (
-    <div className="flex items-baseline gap-1.5">
-      <EditableText
-        value={value}
-        onCommit={onCommit}
-        placeholder="—"
-        inputMode="decimal"
-        className="font-sans text-sm text-paper/90 min-w-0 flex-1"
-      />
-      {unit && <span className="font-mono text-[10px] text-muted shrink-0">{unit}</span>}
-    </div>
-  )
-}
+function CrossCheck({ param, option, score, allOptions, allScores, parameters }) {
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [response, setResponse] = useState('')
+  const [error, setError] = useState(null)
 
-function CategoricalRawInput({ value, options, onPick }) {
-  const opts = normalizeOptions(options)
-  const labels = opts.map(o => o.label)
-  const hasMatch = labels.includes(value)
+  const ask = async () => {
+    setLoading(true); setError(null); setResponse('')
+    try {
+      // build context: this score, plus how this option compares to others on this param
+      const peers = allOptions
+        .filter(o => o.id !== option.id)
+        .map(o => {
+          const s = allScores.find(x => x.option_id === o.id && x.parameter_id === param.id)
+          return { name: o.name, value: s?.value, raw: s?.notes }
+        })
+        .filter(x => x.value != null || x.raw)
+
+      const prompt = `You are a thoughtful decision-coach helping the user stress-test their own ratings on a weighted-decision tool. Your goal is to push back when you see possible bias — anchoring, halo effect, recency, motivated reasoning — not to be agreeable.
+
+Decision context:
+- Consideration: "${param.name}" (type: ${param.input_type || 'text'}${param.unit ? `, unit: ${param.unit}` : ''})
+- Option being scored: "${option.name}"
+- Raw evidence the user wrote: ${score?.notes ? `"${score.notes}${param.unit ? ' ' + param.unit : ''}"` : '(none)'}
+- User's score: ${score?.value != null ? `${score.value} / 10` : '(unset)'}
+
+How the user scored peer options on this same consideration:
+${peers.length === 0 ? '(no peers scored yet)' : peers.map(p => `- "${p.name}": ${p.value != null ? p.value.toFixed(1) + '/10' : '—'}${p.raw ? `  (raw: "${p.raw}")` : ''}`).join('\n')}
+
+Respond in 3-5 short bullet points, conversational, second person. Focus on:
+1. Whether the score is internally consistent with the raw evidence.
+2. Whether the score is consistent with peer scores (e.g. if peer has worse raw but higher score, flag it).
+3. One concrete bias risk to consider.
+4. Suggest a tighter score range if you'd nudge it.
+
+Be direct, not soft. No preamble, no recap, no "great question". Use plain text, no markdown headers.`
+
+      const text = await askClaude(prompt)
+      setResponse(text)
+    } catch (e) {
+      setError(e?.message || String(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
-    <div className="relative">
-      <select
-        value={hasMatch ? value : ''}
-        onChange={e => {
-          const label = e.target.value
-          const opt = opts.find(o => o.label === label)
-          onPick({ label, autoScore: opt?.score ?? null })
+    <div style={{ position: 'relative' }}>
+      <button onClick={() => { setOpen(o => !o); if (!response && !loading) ask() }}
+        disabled={score?.value == null}
+        title={score?.value == null ? 'set a score first' : 'cross-check this rating'}
+        style={{
+          background: 'transparent', border: '1px solid var(--rule)', borderRadius: 4,
+          padding: '2px 7px', fontSize: 10, color: 'var(--ink-soft)',
+          display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'Geist Mono, monospace',
+          letterSpacing: '0.04em', textTransform: 'uppercase',
+          opacity: score?.value == null ? 0.3 : 1,
+        }}>
+        <span style={{ fontSize: 9 }}>◇</span> cross-check
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 20,
+          width: 320, padding: '14px 16px',
+          background: 'var(--bg)', border: '1px solid var(--hi)', borderRadius: 6,
+          boxShadow: '0 14px 30px rgba(0,0,0,0.18)',
         }}
-        className={`font-sans text-xs w-full leading-relaxed py-0.5 pr-4 cursor-pointer ${value && hasMatch ? 'text-paper/90' : 'text-muted'}`}
-      >
-        <option value="">—</option>
-        {opts.map(opt => (
-          <option key={opt.label} value={opt.label}>{opt.label}{opt.score != null ? ` (${opt.score})` : ''}</option>
-        ))}
-        {value && !hasMatch && <option value={value}>{value} (custom)</option>}
-      </select>
-      <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 font-mono text-[10px] text-muted">▾</span>
+        onClick={e => e.stopPropagation()}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <Pill color="var(--hi)">cross-check · {param.name}</Pill>
+            <button onClick={() => setOpen(false)} className="iconbtn" style={{ width: 20, height: 20, fontSize: 12 }}>×</button>
+          </div>
+          {loading && <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontStyle: 'italic' }}>thinking…</div>}
+          {error && <div style={{ fontSize: 12, color: 'var(--neg)' }}>{error}</div>}
+          {response && (
+            <div style={{ fontSize: 12.5, lineHeight: 1.55, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{response}</div>
+          )}
+          {response && (
+            <button onClick={() => { setResponse(''); ask() }}
+              style={{ marginTop: 10, background: 'transparent', border: '1px solid var(--rule)', borderRadius: 4, padding: '4px 8px', fontSize: 10, color: 'var(--ink-soft)', fontFamily: 'Geist Mono, monospace', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              ↻ ask again
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
-
-function MatrixCell({ score, parameter, onUpdate }) {
+// Raw value on top (text / number / categorical, per input_type),
+// score number + visual bar below. No click-to-edit step.
+function Cell({ param, option, score, onUpdate }) {
   const [scoreDraft, setScoreDraft] = useState(score?.value ?? '')
   useEffect(() => { setScoreDraft(score?.value ?? '') }, [score?.value])
 
@@ -382,31 +1010,22 @@ function MatrixCell({ score, parameter, onUpdate }) {
     if (clamped !== score?.value) onUpdate({ value: clamped })
   }
 
-  let rawInput
-  switch (parameter.input_type) {
-    case 'number':
-      rawInput = <NumberRawInput value={score?.notes ?? ''} unit={parameter.unit} onCommit={v => onUpdate({ notes: v })} />
-      break
-    case 'categorical':
-      rawInput = <CategoricalRawInput
-        value={score?.notes ?? ''}
-        options={parameter.options}
-        onPick={({ label, autoScore }) => {
-          const updates = { notes: label }
-          if (autoScore != null) updates.value = autoScore
-          onUpdate(updates)
-        }}
-      />
-      break
-    default:
-      rawInput = <TextRawInput value={score?.notes ?? ''} onCommit={v => onUpdate({ notes: v })} />
-  }
+  const pct = score?.value != null ? Math.max(0, Math.min(100, (Number(score.value) / 10) * 100)) : 0
 
   return (
-    <td className="border-l border-rule/30 align-top p-0">
-      <div className="p-2.5 min-w-[160px]">
-        <div className="mb-2 min-h-[22px]">{rawInput}</div>
-        <div className="flex items-center gap-2">
+    <td style={{ padding: '10px 12px', minWidth: 160, verticalAlign: 'top' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* raw value (typed input) */}
+        <RawInput
+          value={score?.notes}
+          unit={param.unit}
+          type={param.input_type}
+          options={param.options}
+          onChange={v => onUpdate({ notes: v })}
+        />
+
+        {/* score number + bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <input
             type="number" min="0" max="10" step="0.5"
             value={scoreDraft}
@@ -414,471 +1033,221 @@ function MatrixCell({ score, parameter, onUpdate }) {
             onBlur={commitScore}
             onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
             placeholder="—"
-            className="font-mono text-sm w-10 text-right text-amber"
+            className="mono"
+            style={{
+              width: 44, fontSize: 13, textAlign: 'right',
+              border: '1px solid var(--rule)', borderRadius: 4, padding: '3px 6px',
+              color: 'var(--accent)', flexShrink: 0,
+            }}
           />
-          <ScoreBar value={score?.value} />
+          <div style={{ flex: 1, position: 'relative', height: 1, background: 'var(--rule)' }}>
+            {score?.value != null && (
+              <div style={{
+                position: 'absolute', left: 0, top: 0, height: 1,
+                width: `${pct}%`, background: 'var(--accent)',
+                transition: 'width 200ms',
+              }} />
+            )}
+          </div>
         </div>
       </div>
     </td>
   )
 }
 
-// ===== components/OptionInput.jsx (inside TypeEditor) =====
-function OptionInput({ option, onCommit, onRemove }) {
-  const [labelDraft, setLabelDraft] = useState(option.label ?? '')
-  const [scoreDraft, setScoreDraft] = useState(option.score ?? '')
-  useEffect(() => { setLabelDraft(option.label ?? '') }, [option.label])
-  useEffect(() => { setScoreDraft(option.score ?? '') }, [option.score])
+// =============================================================================
+// WHAT-IF OVERLAY
+// =============================================================================
+function WhatIfOverlay({ data, onClose }) {
+  const baseline = useMemo(() => rankedOptions(data.options, data.scores, data.parameters), [data])
+  const baseTop = baseline[0]
+  const robust = useMemo(() => robustness(data.parameters, data.options, data.scores), [data])
+  const baseSens = useMemo(() => perWeightSensitivity(data.parameters, data.options, data.scores), [data])
 
-  const commitLabel = () => {
-    if (labelDraft !== option.label) onCommit({ label: labelDraft, score: option.score })
-  }
-  const commitScore = () => {
-    if (scoreDraft === '' || scoreDraft === null) {
-      if (option.score != null) onCommit({ label: option.label, score: null })
-      return
-    }
-    const num = parseFloat(scoreDraft)
-    if (isNaN(num)) { setScoreDraft(option.score ?? ''); return }
-    const clamped = Math.max(0, Math.min(10, num))
-    if (clamped !== option.score) onCommit({ label: option.label, score: clamped })
-  }
+  useEffect(() => {
+    const k = e => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k)
+  }, [onClose])
 
   return (
-    <div className="flex items-center gap-1 mb-1">
-      <input
-        type="text" value={labelDraft}
-        onChange={e => setLabelDraft(e.target.value)} onBlur={commitLabel}
-        onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
-        placeholder="option label…"
-        className="flex-1 font-sans text-[11px] border border-rule/40 px-1.5 py-0.5 text-paper/90"
-      />
-      <input
-        type="number" min="0" max="10" step="0.5" value={scoreDraft}
-        onChange={e => setScoreDraft(e.target.value)} onBlur={commitScore}
-        onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
-        placeholder="—" title="default score (0-10)"
-        className="w-12 font-mono text-[11px] text-right border border-rule/40 px-1 py-0.5 text-amber"
-      />
-      <button onClick={onRemove} className="font-mono text-xs text-muted hover:text-amber w-3 shrink-0">×</button>
-    </div>
-  )
-}
-
-// ===== components/TypeEditor.jsx =====
-function TypeEditor({ parameter, onUpdate, onClose }) {
-  const options = normalizeOptions(parameter.options)
-
-  const handleTypeChange = (newType) => {
-    const updates = { input_type: newType }
-    if (newType !== 'number') updates.unit = null
-    if (newType !== 'categorical') {
-      updates.options = null
-    } else if (newType === 'categorical' && options.length === 0) {
-      updates.options = [{ label: '', score: null }, { label: '', score: null }]
-    }
-    onUpdate(updates)
-  }
-
-  return (
-    <div className="mt-3 p-2 border border-rule/40 bg-amber/[0.02] space-y-2">
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-muted shrink-0">type:</span>
-        <select
-          value={parameter.input_type || 'text'}
-          onChange={e => handleTypeChange(e.target.value)}
-          className="font-mono text-[10px] border border-rule/40 px-1.5 py-0.5 text-paper cursor-pointer"
-        >
-          <option value="text">text</option>
-          <option value="number">number</option>
-          <option value="categorical">categorical</option>
-        </select>
-      </div>
-
-      {parameter.input_type === 'number' && (
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-wider text-muted shrink-0">unit:</span>
-          <EditableText
-            value={parameter.unit || ''}
-            onCommit={v => onUpdate({ unit: v })}
-            placeholder="e.g. 万円, %, h/month"
-            className="flex-1 font-mono text-[11px] border border-rule/40 px-1.5 py-0.5 text-paper/90"
-          />
-        </div>
-      )}
-
-      {parameter.input_type === 'categorical' && (
-        <div>
-          <div className="flex items-baseline justify-between mb-1.5">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-muted">options</span>
-            <span className="font-mono text-[10px] text-muted/60">label · auto-score</span>
+    <div className="overlay-bg" onClick={onClose}>
+      <div className="overlay-card" onClick={e => e.stopPropagation()} style={{ width: 1080, maxWidth: '95vw' }}>
+        <div style={{ padding: '24px 32px 18px', borderBottom: '1px solid var(--rule)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 1 }}>
+          <div>
+            <span className="label">what-if · sensitivity</span>
+            <h2 style={{ margin: '6px 0 0', fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em' }}>Is the answer robust to how you weighted things?</h2>
           </div>
-          {options.map((opt, idx) => (
-            <OptionInput
-              key={idx}
-              option={opt}
-              onCommit={v => {
-                const next = [...options]
-                next[idx] = v
-                onUpdate({ options: next })
-              }}
-              onRemove={() => onUpdate({ options: options.filter((_, i) => i !== idx) })}
-            />
-          ))}
-          <button
-            onClick={() => onUpdate({ options: [...options, { label: '', score: null }] })}
-            className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber transition mt-1"
-          >+ add option</button>
-          <p className="font-mono text-[9px] text-muted/60 mt-2 leading-relaxed">
-            picking an option in a cell auto-fills its score. you can still manually override per cell.
-          </p>
+          <button className="iconbtn" onClick={onClose}>×</button>
         </div>
-      )}
-
-      <button
-        onClick={onClose}
-        className="font-mono text-[10px] uppercase tracking-wider text-amber border border-amber/40 px-2 py-1 hover:bg-amber hover:text-ink transition"
-      >done</button>
-    </div>
-  )
-}
-
-// ===== components/ParameterRowHeader.jsx =====
-function ParameterRowHeader({ parameter, onUpdate, onDelete, onDuplicate, onArchive }) {
-  const [editing, setEditing] = useState(false)
-
-  const typeSummary = () => {
-    const t = parameter.input_type || 'text'
-    if (t === 'number') return `number · ${parameter.unit || 'no unit'}`
-    if (t === 'categorical') {
-      const opts = normalizeOptions(parameter.options)
-      const scored = opts.filter(o => o.score != null).length
-      return `categorical · ${opts.length} options${scored === opts.length && opts.length > 0 ? ' · all scored' : ''}`
-    }
-    return 'text'
-  }
-
-  return (
-    <th className="text-left align-top p-0 group">
-      <div className="p-2.5 pr-4 min-w-[220px] max-w-[280px]">
-        <div className="flex items-start gap-2">
-          <EditableText
-            value={parameter.name}
-            onCommit={v => onUpdate({ name: v })}
-            className="font-sans text-sm font-medium text-paper flex-1"
-          />
-          <div className="opacity-0 group-hover:opacity-100 transition flex items-center gap-1 shrink-0">
-            <MatrixActionButton label="dup" onClick={onDuplicate} title="duplicate (copies all scores)" />
-            <MatrixActionButton label="arc" onClick={onArchive} title="archive (reversible)" />
-            <ConfirmableDeleteButton onConfirm={onDelete} label="permanently delete" />
-          </div>
-        </div>
-        <div className="flex items-center gap-2 mt-2">
-          <input
-            type="range" min="0" max="10" step="0.5"
-            value={parameter.weight}
-            onChange={e => onUpdate({ weight: parseFloat(e.target.value) })}
-            className="flex-1"
-          />
-          <span className="font-mono text-[10px] tabular-nums w-12 text-right text-amber">
-            w {Number(parameter.weight).toFixed(1)}
-          </span>
-        </div>
-
-        {!editing ? (
-          <button
-            onClick={() => setEditing(true)}
-            className="mt-2 font-mono text-[10px] text-muted hover:text-amber transition w-full text-left"
-            title="edit parameter type and options"
-          >
-            <span className="opacity-60">▸</span> {typeSummary()}
-          </button>
-        ) : (
-          <TypeEditor parameter={parameter} onUpdate={onUpdate} onClose={() => setEditing(false)} />
-        )}
-      </div>
-    </th>
-  )
-}
-
-// ===== components/OptionColHeader.jsx =====
-function OptionColHeader({ option, isBest, onUpdate, onDelete, onDuplicate, onArchive }) {
-  return (
-    <th className="align-bottom p-0 group">
-      <div className="p-2.5 min-w-[160px] border-l border-rule/30">
-        <div className="flex items-center justify-between gap-2 mb-1">
-          {isBest && <span className="text-amber font-mono text-[10px]">▸</span>}
-          <EditableText
-            value={option.name}
-            onCommit={v => onUpdate({ name: v })}
-            className={`font-sans text-sm font-medium flex-1 ${isBest ? 'text-amber' : 'text-paper'}`}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted/60">option</span>
-          <div className="opacity-0 group-hover:opacity-100 transition flex items-center gap-1">
-            <MatrixActionButton label="dup" onClick={onDuplicate} title="duplicate (copies all scores)" />
-            <MatrixActionButton label="arc" onClick={onArchive} title="archive (reversible)" />
-            <ConfirmableDeleteButton onConfirm={onDelete} label="permanently delete" />
-          </div>
-        </div>
-      </div>
-    </th>
-  )
-}
-
-// ===== components/Add rows/cols =====
-function AddParameterRow({ colSpan, onAdd }) {
-  const [draft, setDraft] = useState('')
-  const handle = () => { if (draft.trim()) { onAdd(draft.trim()); setDraft('') } }
-  return (
-    <tr className="border-t border-rule/40">
-      <th className="text-left p-0">
-        <div className="p-2.5">
-          <input
-            type="text" value={draft} onChange={e => setDraft(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handle()}
-            placeholder="+ add parameter…"
-            className="font-sans text-sm text-muted hover:text-paper focus:text-paper w-full"
-          />
-        </div>
-      </th>
-      <td colSpan={colSpan} className="p-2.5">
-        <button onClick={handle} disabled={!draft.trim()}
-          className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber disabled:opacity-30 disabled:hover:text-muted transition">
-          press enter to add
-        </button>
-      </td>
-    </tr>
-  )
-}
-
-function AddOptionCol({ rowCount, onAdd }) {
-  const [draft, setDraft] = useState('')
-  const handle = () => { if (draft.trim()) { onAdd(draft.trim()); setDraft('') } }
-  return (
-    <th rowSpan={rowCount} className="align-top p-0 border-l border-rule/30">
-      <div className="p-2.5 min-w-[140px]">
-        <input
-          type="text" value={draft} onChange={e => setDraft(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handle()}
-          placeholder="+ option…"
-          className="font-sans text-sm text-muted hover:text-paper focus:text-paper w-full mb-2"
-        />
-        <button onClick={handle} disabled={!draft.trim()}
-          className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber disabled:opacity-30 disabled:hover:text-muted transition">
-          enter
-        </button>
-      </div>
-    </th>
-  )
-}
-
-function QuickAdd({ placeholder, onAdd }) {
-  const [draft, setDraft] = useState('')
-  const handle = () => { if (draft.trim()) { onAdd(draft.trim()); setDraft('') } }
-  return (
-    <input
-      type="text" value={draft} onChange={e => setDraft(e.target.value)}
-      onKeyDown={e => e.key === 'Enter' && handle()}
-      placeholder={placeholder}
-      className="font-sans text-sm border border-rule/60 px-3 py-2 placeholder:text-muted hover:border-amber/40 focus:border-amber"
-    />
-  )
-}
-
-// ===== components/ScoreMatrix.jsx =====
-function ScoreMatrix({ parameters, options, scores, paramHandlers, optionHandlers, onScoreUpdate }) {
-  const totals = useMemo(() => {
-    const map = {}
-    for (const o of options) map[o.id] = weightedTotal(o.id, scores, parameters)
-    return map
-  }, [options, parameters, scores])
-
-  const best = useMemo(() => findBestOption(options, scores, parameters), [options, scores, parameters])
-
-  const getScore = (oId, pId) => scores.find(s => s.option_id === oId && s.parameter_id === pId)
-
-  if (parameters.length === 0 && options.length === 0) {
-    return (
-      <div>
-        <SectionHeader title="decision matrix" />
-        <div className="border border-dashed border-rule/60 p-8 text-center">
-          <p className="font-mono text-xs text-muted mb-4">empty matrix. add parameters (what matters) and options (what you're comparing).</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-            <QuickAdd placeholder="+ first parameter…" onAdd={paramHandlers.onAdd} />
-            <QuickAdd placeholder="+ first option…" onAdd={optionHandlers.onAdd} />
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const optionCount = options.length
-
-  return (
-    <div>
-      <SectionHeader title="decision matrix" meta={`${parameters.length} param × ${options.length} options`} />
-      <div className="overflow-x-auto -mx-2 px-2">
-        <table className="border-collapse">
-          <thead>
-            <tr className="border-b border-rule">
-              <th className="p-2.5 text-left align-bottom">
-                <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted">parameter</div>
-                <div className="font-mono text-[10px] text-muted/60 mt-1">weight · type</div>
-              </th>
-              {options.map(o => (
-                <OptionColHeader
-                  key={o.id}
-                  option={o}
-                  isBest={best?.id === o.id}
-                  onUpdate={fields => optionHandlers.onUpdate(o.id, fields)}
-                  onDelete={() => optionHandlers.onDelete(o.id)}
-                  onDuplicate={() => optionHandlers.onDuplicate(o.id)}
-                  onArchive={() => optionHandlers.onArchive(o.id)}
-                />
-              ))}
-              <AddOptionCol rowCount={parameters.length + 2} onAdd={optionHandlers.onAdd} />
-            </tr>
-          </thead>
-          <tbody>
-            {parameters.map(p => (
-              <tr key={p.id} className="border-b border-rule/40">
-                <ParameterRowHeader
-                  parameter={p}
-                  onUpdate={fields => paramHandlers.onUpdate(p.id, fields)}
-                  onDelete={() => paramHandlers.onDelete(p.id)}
-                  onDuplicate={() => paramHandlers.onDuplicate(p.id)}
-                  onArchive={() => paramHandlers.onArchive(p.id)}
-                />
-                {options.map(o => (
-                  <MatrixCell
-                    key={o.id}
-                    score={getScore(o.id, p.id)}
-                    parameter={p}
-                    onUpdate={fields => onScoreUpdate(o.id, p.id, fields)}
-                  />
-                ))}
-              </tr>
-            ))}
-            <AddParameterRow colSpan={Math.max(optionCount, 1)} onAdd={paramHandlers.onAdd} />
-            <tr className="border-t-2 border-rule">
-              <th className="p-2.5 text-left align-middle">
-                <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-amber">total</div>
-                <div className="font-mono text-[10px] text-muted/60 mt-1">weighted average</div>
-              </th>
-              {options.map(o => {
-                const t = totals[o.id]
-                const isBest = best?.id === o.id
+        <div style={{ padding: '24px 32px 40px' }}>
+          {robust != null && baseTop && (
+            <div style={{ padding: '24px 28px', background: 'var(--ink)', color: 'var(--bg)', borderRadius: 8, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 32, alignItems: 'center', marginBottom: 28 }}>
+              <div>
+                <span className="label" style={{ color: 'oklch(0.7 0.05 240)' }}>robustness</span>
+                <div style={{ fontSize: 56, fontWeight: 500, lineHeight: 1, marginTop: 6 }}>{robust.toFixed(2)}</div>
+              </div>
+              <div style={{ fontSize: 14, lineHeight: 1.55 }}>
+                Across 100 weight perturbations (±2 on each weight), <strong>{baseTop.name}</strong> stays on top{' '}
+                <strong style={{ color: 'var(--accent)' }}>{Math.round(robust * 100)}%</strong> of the time.{' '}
+                {robust >= 0.7 ? 'The pick is robust.' : robust >= 0.4 ? 'Mixed — sleep on it.' : 'Fragile — different weights would pick differently.'}
+              </div>
+            </div>
+          )}
+          <section>
+            <span className="label">per-weight sensitivity · how often does sweeping each weight 0→10 flip the leader?</span>
+            <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12 }}>
+              {baseSens.map((row, i) => {
+                const flag = row.sens > 0.4
                 return (
-                  <td key={o.id} className="p-2.5 border-l border-rule/30 align-middle">
-                    <span className={`font-mono text-xl tabular-nums ${isBest ? 'text-amber' : 'text-paper'}`}>
-                      {t != null ? t.toFixed(2) : '—'}
+                  <div key={i} style={{ padding: '14px 16px', border: `1px solid ${flag ? 'var(--neg)' : 'var(--rule)'}`, background: flag ? 'var(--neg-soft)' : 'var(--bg)', borderRadius: 6 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 500 }}>{row.p.name}</span>
+                      <span className="mono" style={{ fontSize: 13, color: flag ? 'var(--neg)' : 'var(--ink)' }}>{row.sens.toFixed(2)}</span>
+                    </div>
+                    <div style={{ height: 4, background: 'var(--rule-soft)', borderRadius: 2 }}>
+                      <div style={{ width: `${row.sens * 100}%`, height: '100%', background: flag ? 'var(--neg)' : 'var(--ink)', borderRadius: 2, transition: 'width 300ms' }} />
+                    </div>
+                    <span className="label" style={{ marginTop: 6, display: 'block', color: flag ? 'var(--neg)' : undefined }}>
+                      {flag ? `⚠ flips around w=${row.flipAt?.toFixed(1) ?? '?'}` : row.sens > 0.15 ? 'medium impact' : 'low impact'}
                     </span>
-                  </td>
+                  </div>
                 )
               })}
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      {best && (
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted/70 mt-6">
-          leading option · <span className="text-amber">{options.find(o => o.id === best.id)?.name}</span> · {best.total.toFixed(2)}
-        </p>
-      )}
-    </div>
-  )
-}
-
-// ===== components/ArchivedSection.jsx =====
-function ArchivedSection({ options, parameters, optionHandlers, paramHandlers }) {
-  if (options.length === 0 && parameters.length === 0) return null
-
-  return (
-    <div className="mt-16 border-t border-rule pt-6">
-      <SectionHeader title="archived" meta={`${options.length + parameters.length} items`} />
-
-      {options.length > 0 && (
-        <div className="mb-6">
-          <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mb-3">options · {options.length}</h3>
-          {options.map(o => (
-            <div key={o.id} className="flex items-center justify-between py-2 border-b border-rule/30 group">
-              <span className="font-sans text-sm text-muted italic">{o.name || 'untitled'}</span>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => optionHandlers.onRestore(o.id)}
-                  className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber transition"
-                >restore</button>
-                <ConfirmableDeleteButton onConfirm={() => optionHandlers.onDelete(o.id)} label="permanently delete" />
-              </div>
             </div>
-          ))}
+          </section>
         </div>
-      )}
-
-      {parameters.length > 0 && (
-        <div>
-          <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mb-3">parameters · {parameters.length}</h3>
-          {parameters.map(p => (
-            <div key={p.id} className="flex items-center justify-between py-2 border-b border-rule/30 group">
-              <span className="font-sans text-sm text-muted italic">{p.name || 'untitled'}</span>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => paramHandlers.onRestore(p.id)}
-                  className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber transition"
-                >restore</button>
-                <ConfirmableDeleteButton onConfirm={() => paramHandlers.onDelete(p.id)} label="permanently delete" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ===== components/DecisionView.jsx =====
-function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, optionHandlers, onScoreUpdate }) {
-  const activeParameters = data.parameters.filter(p => !p.archived_at)
-  const archivedParameters = data.parameters.filter(p => p.archived_at)
-  const activeOptions = data.options.filter(o => !o.archived_at)
-  const archivedOptions = data.options.filter(o => o.archived_at)
-
-  return (
-    <main className="px-8 py-10 max-w-7xl mx-auto flex-1 w-full">
-      <button onClick={onBack}
-        className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted hover:text-amber mb-8 flex items-center gap-2 transition">
-        <span className="text-base leading-none">←</span> all decisions
-      </button>
-      <div className="mb-10">
-        <EditableText value={decision.title} onCommit={onTitleUpdate}
-          className="font-display text-4xl w-full focus:text-amber" placeholder="untitled decision" />
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted/60 mt-2">
-          created {new Date(decision.created_at).toLocaleDateString()}
-        </p>
       </div>
-      <ScoreMatrix
-        parameters={activeParameters}
-        options={activeOptions}
-        scores={data.scores}
-        paramHandlers={paramHandlers}
-        optionHandlers={optionHandlers}
-        onScoreUpdate={onScoreUpdate}
-      />
-      <ArchivedSection
-        options={archivedOptions}
-        parameters={archivedParameters}
-        optionHandlers={optionHandlers}
-        paramHandlers={paramHandlers}
-      />
-    </main>
+    </div>
   )
 }
 
 // =============================================================================
-// App
+// BLIND SCORE OVERLAY
+// =============================================================================
+function BlindOverlay({ data, onScoreUpdate, onClose }) {
+  const [paramIdx, setParamIdx] = useState(0)
+  const [revealed, setRevealed] = useState(false)
+  const params = data.parameters
+  const param = params[paramIdx]
+
+  useEffect(() => {
+    const k = e => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k)
+  }, [onClose])
+
+  if (!param) {
+    return (
+      <div className="overlay-bg" onClick={onClose}>
+        <div className="overlay-card" onClick={e => e.stopPropagation()} style={{ width: 520, padding: 40, textAlign: 'center' }}>
+          <span className="label">no parameters yet</span>
+          <p style={{ marginTop: 12, fontSize: 14, color: 'var(--ink-soft)' }}>Add some considerations first.</p>
+          <button className="btn btn-primary" onClick={onClose} style={{ marginTop: 18 }}>OK</button>
+        </div>
+      </div>
+    )
+  }
+  const shuffled = [...data.options].sort((a, b) => ((a.id.charCodeAt(0) + param.id.charCodeAt(0)) % 7) - ((b.id.charCodeAt(0) + param.id.charCodeAt(0)) % 7))
+  const scoredCount = shuffled.filter(o => data.scores.find(s => s.option_id === o.id && s.parameter_id === param.id && s.value != null)).length
+
+  return (
+    <div className="overlay-bg" onClick={onClose}>
+      <div className="overlay-card" onClick={e => e.stopPropagation()} style={{ width: 840, maxWidth: '95vw' }}>
+        <div style={{ padding: '20px 32px 16px', borderBottom: '1px solid var(--rule)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--bg)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Pill color="var(--hi)">blind mode</Pill>
+            <span className="label">{paramIdx + 1} of {params.length}</span>
+            <div style={{ display: 'flex', gap: 3 }}>
+              {params.map((_, i) => <div key={i} style={{ width: 20, height: 3, background: i <= paramIdx ? 'var(--accent)' : 'var(--rule)', borderRadius: 1 }} />)}
+            </div>
+          </div>
+          <button className="iconbtn" onClick={onClose}>×</button>
+        </div>
+        <div style={{ padding: '28px 32px 40px' }}>
+          <span className="label" style={{ color: 'var(--hi)' }}>anti-bias · halo-effect killer</span>
+          <h2 style={{ margin: '8px 0 6px', fontSize: 26, fontWeight: 500, letterSpacing: '-0.01em' }}>Score {param.name} across all options. Names hidden.</h2>
+          <p style={{ margin: '0 0 24px', fontSize: 13, lineHeight: 1.6, color: 'var(--ink-soft)', maxWidth: 580 }}>
+            Score this one thing for every option at once. Names are hidden — only raw evidence is shown. Reveal at the end: do your scores match your gut?
+          </p>
+          <div style={{ padding: '14px 18px', background: 'var(--bg-inset)', border: '1px solid var(--rule)', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <div>
+              <span className="label">now scoring</span>
+              <div style={{ marginTop: 2, fontSize: 22, fontWeight: 500 }}>{param.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 2 }}>weight {param.weight} · {param.input_type || 'text'}{param.unit ? ` · ${param.unit}` : ''}</div>
+            </div>
+            <span className="label">{scoredCount}/{shuffled.length} scored</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {shuffled.map((o, i) => {
+              const score = data.scores.find(s => s.option_id === o.id && s.parameter_id === param.id)
+              return <BlindCard key={o.id} letter={String.fromCharCode(65 + i)} option={o} score={score} param={param} revealed={revealed}
+                onScore={v => onScoreUpdate(o.id, param.id, { value: v })}
+                onRaw={v => onScoreUpdate(o.id, param.id, { notes: v })} />
+            })}
+          </div>
+          <div style={{ marginTop: 24, padding: '14px 18px', background: 'var(--bg-soft)', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
+              <strong style={{ color: 'var(--ink)' }}>Tip:</strong> if scored gut feel doesn't match your originally-named pick, that's the bias.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-outline btn-sm" onClick={() => setRevealed(r => !r)}>{revealed ? 'Hide names' : 'Reveal names'}</button>
+              <button className="btn btn-outline btn-sm" disabled={paramIdx === 0} onClick={() => { setParamIdx(i => i - 1); setRevealed(false) }}>← prev</button>
+              {paramIdx < params.length - 1
+                ? <button className="btn btn-primary btn-sm" onClick={() => { setParamIdx(i => i + 1); setRevealed(false) }}>Next →</button>
+                : <button className="btn btn-primary btn-sm" onClick={onClose}>Done</button>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function BlindCard({ letter, option, score, param, revealed, onScore, onRaw }) {
+  const [editingRaw, setEditingRaw] = useState(false)
+  const hasRaw = score?.notes != null && score.notes !== ''
+  const hasValue = score?.value != null
+  return (
+    <div style={{ padding: '16px 20px', border: `1px solid ${hasValue ? 'var(--rule)' : 'var(--hi)'}`, background: hasValue ? 'var(--bg)' : 'var(--hi-soft)', borderRadius: 6, display: 'grid', gridTemplateColumns: '52px 1fr auto', gap: 18, alignItems: 'center' }}>
+      <div style={{ width: 44, height: 44, background: revealed ? 'var(--accent)' : (hasValue ? 'var(--bg-inset)' : 'var(--hi)'), borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 600, color: revealed ? 'var(--bg)' : (hasValue ? 'var(--ink)' : 'var(--bg)'), transition: 'all 220ms' }}>
+        {revealed ? option.name?.charAt(0).toUpperCase() : letter}
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <span className="label">{revealed ? option.name : 'option ' + letter}</span>
+        <div style={{ marginTop: 4 }}>
+          {editingRaw
+            ? <RawInput value={score?.notes} unit={param.unit} type={param.input_type} options={param.options} onChange={v => { onRaw(v); setEditingRaw(false) }} />
+            : <div onClick={() => setEditingRaw(true)} style={{ fontSize: 16, fontStyle: hasRaw ? 'italic' : 'normal', cursor: 'text', minHeight: 22 }}>
+                {hasRaw ? `"${score.notes}${param.unit ? ' ' + param.unit : ''}"` : <span style={{ color: 'var(--ink-faint)' }}>+ add evidence</span>}
+              </div>
+          }
+        </div>
+      </div>
+      {hasValue ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ textAlign: 'right' }}>
+            <span className="mono" style={{ fontSize: 22, fontWeight: 500, color: 'var(--accent)' }}>{Number(score.value).toFixed(1)}</span>
+            <div style={{ marginTop: 2 }}><span className="label">scored</span></div>
+          </div>
+          <button className="iconbtn" onClick={() => onScore(null)} title="clear">×</button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 4 }}>
+          {[0, 2.5, 5, 7.5, 10].map(v => (
+            <button key={v} onClick={() => onScore(v)} className="mono"
+              style={{ padding: '6px 11px', background: 'var(--bg)', border: '1px solid var(--rule)', fontSize: 11, borderRadius: 4, color: 'var(--ink)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--ink)'; e.currentTarget.style.color = 'var(--bg)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--ink)' }}
+            >{v}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// =============================================================================
+// APP
 // =============================================================================
 function App() {
   const [decisions, setDecisions] = useState([])
@@ -886,6 +1255,13 @@ function App() {
   const [decisionData, setDecisionData] = useState({ parameters: [], options: [], scores: [] })
   const [loading, setLoading] = useState(true)
   const [configError, setConfigError] = useState(false)
+  const [mode, setMode] = useState(null)
+
+  useEffect(() => {
+    const accent = localStorage.getItem('sigma_accent') || 'green'
+    const a = ACCENT_OPTIONS.find(x => x.name === accent) || ACCENT_OPTIONS[0]
+    applyAccent(a.hue)
+  }, [])
 
   useEffect(() => {
     if (supabaseInitError) { setConfigError(true); setLoading(false); return }
@@ -898,31 +1274,21 @@ function App() {
 
   async function loadDecisions() {
     setLoading(true)
-    const { data: decs } = await supabase
-      .from('sigma_decisions').select('*')
+    const { data: decs } = await supabase.from('sigma_decisions').select('*')
       .neq('status', 'archived').order('updated_at', { ascending: false })
     if (!decs || decs.length === 0) { setDecisions([]); setLoading(false); return }
-
     const ids = decs.map(d => d.id)
     const [pRes, oRes, sRes] = await Promise.all([
-      supabase.from('sigma_parameters').select('*').in('decision_id', ids),
-      supabase.from('sigma_options').select('*').in('decision_id', ids),
+      supabase.from('sigma_parameters').select('*').in('decision_id', ids).order('display_order'),
+      supabase.from('sigma_options').select('*').in('decision_id', ids).order('display_order'),
       supabase.from('sigma_scores').select('*, sigma_options!inner(decision_id)').in('sigma_options.decision_id', ids),
     ])
-    const enriched = decs.map(d => {
-      // Count and compute totals using only ACTIVE items (non-archived)
-      const parameters = (pRes.data || []).filter(p => p.decision_id === d.id && !p.archived_at)
-      const options = (oRes.data || []).filter(o => o.decision_id === d.id && !o.archived_at)
-      const scores = (sRes.data || []).filter(s => s.sigma_options?.decision_id === d.id)
-      const best = findBestOption(options, scores, parameters)
-      const bestOption = best ? options.find(o => o.id === best.id) : null
-      return {
-        ...d,
-        _parameterCount: parameters.length,
-        _optionCount: options.length,
-        _leading: bestOption ? { name: bestOption.name, total: best.total } : null,
-      }
-    })
+    const enriched = decs.map(d => ({
+      ...d,
+      _parameters: (pRes.data || []).filter(p => p.decision_id === d.id),
+      _options:    (oRes.data || []).filter(o => o.decision_id === d.id),
+      _scores:     (sRes.data || []).filter(s => s.sigma_options?.decision_id === d.id),
+    }))
     setDecisions(enriched)
     setLoading(false)
   }
@@ -933,20 +1299,13 @@ function App() {
       supabase.from('sigma_options').select('*').eq('decision_id', id).order('display_order'),
       supabase.from('sigma_scores').select('*, sigma_options!inner(decision_id)').eq('sigma_options.decision_id', id),
     ])
-    setDecisionData({
-      parameters: pRes.data || [],
-      options: oRes.data || [],
-      scores: sRes.data || [],
-    })
+    setDecisionData({ parameters: pRes.data || [], options: oRes.data || [], scores: sRes.data || [] })
   }
 
   async function createDecision() {
-    const { data } = await supabase
-      .from('sigma_decisions')
-      .insert({ title: '', type: 'custom', status: 'active' })
-      .select().single()
+    const { data } = await supabase.from('sigma_decisions').insert({ title: '', type: 'custom', status: 'active' }).select().single()
     if (data) {
-      setDecisions([{ ...data, _parameterCount: 0, _optionCount: 0, _leading: null }, ...decisions])
+      setDecisions([{ ...data, _parameters: [], _options: [], _scores: [] }, ...decisions])
       setSelectedId(data.id)
       setDecisionData({ parameters: [], options: [], scores: [] })
     }
@@ -957,11 +1316,9 @@ function App() {
     await supabase.from('sigma_decisions').update({ title }).eq('id', selectedId)
   }
 
-  // -- Parameter handlers --
   async function addParameter(name) {
-    const activeParams = decisionData.parameters.filter(p => !p.archived_at)
     const { data } = await supabase.from('sigma_parameters')
-      .insert({ decision_id: selectedId, name, weight: 5.0, display_order: activeParams.length, input_type: 'text' })
+      .insert({ decision_id: selectedId, name, weight: 5.0, display_order: decisionData.parameters.length, input_type: 'text' })
       .select().single()
     if (data) setDecisionData(prev => ({ ...prev, parameters: [...prev.parameters, data] }))
   }
@@ -972,80 +1329,13 @@ function App() {
   }
 
   async function deleteParameter(id) {
-    setDecisionData(prev => ({
-      ...prev,
-      parameters: prev.parameters.filter(p => p.id !== id),
-      scores: prev.scores.filter(s => s.parameter_id !== id),
-    }))
+    setDecisionData(prev => ({ ...prev, parameters: prev.parameters.filter(p => p.id !== id), scores: prev.scores.filter(s => s.parameter_id !== id) }))
     await supabase.from('sigma_parameters').delete().eq('id', id)
   }
 
-  async function duplicateParameter(id) {
-    const original = decisionData.parameters.find(p => p.id === id)
-    if (!original) return
-    const activeParams = decisionData.parameters.filter(p => !p.archived_at)
-    const sortedActive = [...activeParams].sort((a, b) => a.display_order - b.display_order)
-    const toShift = sortedActive.filter(p => p.display_order > original.display_order)
-    // 1. Bump display_orders of params after the original
-    for (const p of toShift) {
-      await supabase.from('sigma_parameters').update({ display_order: p.display_order + 1 }).eq('id', p.id)
-    }
-    // 2. Insert new parameter with same config
-    const { data: newParam } = await supabase.from('sigma_parameters').insert({
-      decision_id: original.decision_id,
-      name: `${original.name} (copy)`,
-      weight: original.weight,
-      input_type: original.input_type,
-      unit: original.unit,
-      options: original.options,
-      description: original.description,
-      display_order: original.display_order + 1,
-      category: original.category,
-      has_uncertainty: original.has_uncertainty,
-    }).select().single()
-    if (!newParam) return
-    // 3. Copy scores: for each option, copy the score on the original param
-    const origScores = decisionData.scores.filter(s => s.parameter_id === id)
-    if (origScores.length > 0) {
-      const newScores = origScores.map(s => ({
-        option_id: s.option_id,
-        parameter_id: newParam.id,
-        value: s.value,
-        notes: s.notes,
-        min_value: s.min_value,
-        max_value: s.max_value,
-        confidence: s.confidence,
-      }))
-      await supabase.from('sigma_scores').insert(newScores)
-    }
-    await loadDecisionDetail(selectedId)
-  }
-
-  async function archiveParameter(id) {
-    const now = new Date().toISOString()
-    setDecisionData(prev => ({
-      ...prev,
-      parameters: prev.parameters.map(p => p.id === id ? { ...p, archived_at: now } : p),
-    }))
-    await supabase.from('sigma_parameters').update({ archived_at: now }).eq('id', id)
-  }
-
-  async function restoreParameter(id) {
-    const activeParams = decisionData.parameters.filter(p => !p.archived_at)
-    const maxOrder = activeParams.length > 0 ? Math.max(...activeParams.map(p => p.display_order)) : -1
-    const updates = { archived_at: null, display_order: maxOrder + 1 }
-    setDecisionData(prev => ({
-      ...prev,
-      parameters: prev.parameters.map(p => p.id === id ? { ...p, ...updates } : p),
-    }))
-    await supabase.from('sigma_parameters').update(updates).eq('id', id)
-  }
-
-  // -- Option handlers --
   async function addOption(name) {
-    const activeOpts = decisionData.options.filter(o => !o.archived_at)
     const { data } = await supabase.from('sigma_options')
-      .insert({ decision_id: selectedId, name, display_order: activeOpts.length })
+      .insert({ decision_id: selectedId, name, display_order: decisionData.options.length })
       .select().single()
     if (data) setDecisionData(prev => ({ ...prev, options: [...prev.options, data] }))
   }
@@ -1056,74 +1346,15 @@ function App() {
   }
 
   async function deleteOption(id) {
-    setDecisionData(prev => ({
-      ...prev,
-      options: prev.options.filter(o => o.id !== id),
-      scores: prev.scores.filter(s => s.option_id !== id),
-    }))
+    setDecisionData(prev => ({ ...prev, options: prev.options.filter(o => o.id !== id), scores: prev.scores.filter(s => s.option_id !== id) }))
     await supabase.from('sigma_options').delete().eq('id', id)
-  }
-
-  async function duplicateOption(id) {
-    const original = decisionData.options.find(o => o.id === id)
-    if (!original) return
-    const activeOpts = decisionData.options.filter(o => !o.archived_at)
-    const sortedActive = [...activeOpts].sort((a, b) => a.display_order - b.display_order)
-    const toShift = sortedActive.filter(o => o.display_order > original.display_order)
-    // 1. Bump display_orders
-    for (const o of toShift) {
-      await supabase.from('sigma_options').update({ display_order: o.display_order + 1 }).eq('id', o.id)
-    }
-    // 2. Insert new option
-    const { data: newOpt } = await supabase.from('sigma_options').insert({
-      decision_id: original.decision_id,
-      name: `${original.name} (copy)`,
-      notes: original.notes,
-      display_order: original.display_order + 1,
-    }).select().single()
-    if (!newOpt) return
-    // 3. Copy scores
-    const origScores = decisionData.scores.filter(s => s.option_id === id)
-    if (origScores.length > 0) {
-      const newScores = origScores.map(s => ({
-        option_id: newOpt.id,
-        parameter_id: s.parameter_id,
-        value: s.value,
-        notes: s.notes,
-        min_value: s.min_value,
-        max_value: s.max_value,
-        confidence: s.confidence,
-      }))
-      await supabase.from('sigma_scores').insert(newScores)
-    }
-    await loadDecisionDetail(selectedId)
-  }
-
-  async function archiveOption(id) {
-    const now = new Date().toISOString()
-    setDecisionData(prev => ({
-      ...prev,
-      options: prev.options.map(o => o.id === id ? { ...o, archived_at: now } : o),
-    }))
-    await supabase.from('sigma_options').update({ archived_at: now }).eq('id', id)
-  }
-
-  async function restoreOption(id) {
-    const activeOpts = decisionData.options.filter(o => !o.archived_at)
-    const maxOrder = activeOpts.length > 0 ? Math.max(...activeOpts.map(o => o.display_order)) : -1
-    const updates = { archived_at: null, display_order: maxOrder + 1 }
-    setDecisionData(prev => ({
-      ...prev,
-      options: prev.options.map(o => o.id === id ? { ...o, ...updates } : o),
-    }))
-    await supabase.from('sigma_options').update(updates).eq('id', id)
   }
 
   async function updateScore(optionId, parameterId, updates) {
     const existing = decisionData.scores.find(s => s.option_id === optionId && s.parameter_id === parameterId)
     if (existing) {
       const merged = { ...existing, ...updates }
-      if ((merged.value == null) && (!merged.notes || merged.notes === '')) {
+      if (merged.value == null && (!merged.notes || merged.notes === '')) {
         setDecisionData(prev => ({ ...prev, scores: prev.scores.filter(s => s.id !== existing.id) }))
         await supabase.from('sigma_scores').delete().eq('id', existing.id)
         return
@@ -1131,7 +1362,7 @@ function App() {
       setDecisionData(prev => ({ ...prev, scores: prev.scores.map(s => s.id === existing.id ? merged : s) }))
       await supabase.from('sigma_scores').update(updates).eq('id', existing.id)
     } else {
-      const isEmpty = (updates.value == null) && (!updates.notes || updates.notes === '')
+      const isEmpty = updates.value == null && (!updates.notes || updates.notes === '')
       if (isEmpty) return
       const { data } = await supabase.from('sigma_scores')
         .insert({ option_id: optionId, parameter_id: parameterId, ...updates }).select().single()
@@ -1139,66 +1370,55 @@ function App() {
     }
   }
 
-  function goHome() {
-    setSelectedId(null)
-    loadDecisions()
-  }
-
+  function goHome() { setSelectedId(null); setMode(null); loadDecisions() }
   const selectedDecision = decisions.find(d => d.id === selectedId)
 
   if (configError) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8">
-        <div className="max-w-md">
-          <p className="font-display text-3xl text-amber mb-3">Σ</p>
-          <p className="font-mono text-xs uppercase tracking-wider text-muted mb-4">configuration required</p>
-          <p className="font-sans text-sm leading-relaxed">
-            {supabaseInitError === 'placeholder' ? (
-              <>Open <span className="font-mono text-amber">index.html</span> and replace credentials.</>
-            ) : (
-              <>Supabase config error: <span className="font-mono text-amber">{supabaseInitError}</span></>
-            )}
-          </p>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+        <div style={{ maxWidth: 480 }}>
+          <div style={{ fontSize: 40, color: 'var(--accent)' }}>Σ</div>
+          <p className="label">configuration required</p>
+          <p style={{ fontSize: 14, lineHeight: 1.6 }}>Supabase config error: {supabaseInitError}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header onHomeClick={goHome} />
+    <div style={{ minHeight: '100vh' }}>
+      <TopHeader
+        middle={selectedDecision
+          ? <span className="label">{selectedDecision.type || 'custom'} · {completeness(decisionData.parameters, decisionData.options, decisionData.scores).filled}/{completeness(decisionData.parameters, decisionData.options, decisionData.scores).total} considered</span>
+          : <span className="label">HOME</span>
+        }
+        onHome={goHome}
+        onNew={createDecision}
+      />
+
       {selectedId === null ? (
-        <HomeView decisions={decisions} onSelect={setSelectedId} onNew={createDecision} loading={loading} />
+        <Home decisions={decisions} onOpen={setSelectedId} onNew={createDecision} loading={loading} />
       ) : selectedDecision ? (
         <DecisionView
           decision={selectedDecision}
           data={decisionData}
           onBack={goHome}
           onTitleUpdate={updateDecisionTitle}
-          paramHandlers={{
-            onAdd: addParameter,
-            onUpdate: updateParameter,
-            onDelete: deleteParameter,
-            onDuplicate: duplicateParameter,
-            onArchive: archiveParameter,
-            onRestore: restoreParameter,
-          }}
-          optionHandlers={{
-            onAdd: addOption,
-            onUpdate: updateOption,
-            onDelete: deleteOption,
-            onDuplicate: duplicateOption,
-            onArchive: archiveOption,
-            onRestore: restoreOption,
-          }}
+          paramHandlers={{ onAdd: addParameter, onUpdate: updateParameter, onDelete: deleteParameter }}
+          optionHandlers={{ onAdd: addOption, onUpdate: updateOption, onDelete: deleteOption }}
           onScoreUpdate={updateScore}
+          onOpenMode={setMode}
         />
       ) : (
-        <div className="px-8 py-16 font-mono text-xs text-muted">loading…</div>
+        <div style={{ padding: '40px 28px' }}><span className="label">loading…</span></div>
       )}
-      <footer className="border-t border-rule mt-auto px-8 py-6 font-mono text-[10px] uppercase tracking-[0.2em] text-muted/60 flex justify-between">
-        <span>Σ sigma — v0.6</span>
-        <span>duplicate + archive</span>
+
+      {selectedId && mode === 'whatif' && <WhatIfOverlay data={decisionData} onClose={() => setMode(null)} />}
+      {selectedId && mode === 'blind'  && <BlindOverlay  data={decisionData} onScoreUpdate={updateScore} onClose={() => setMode(null)} />}
+
+      <footer style={{ borderTop: '1px solid var(--rule)', padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span className="label">Σ Sigma · v0.5 trajectory</span>
+        <span className="label">decisions, decomposed</span>
       </footer>
     </div>
   )
