@@ -71,7 +71,7 @@
 <div id="root"></div>
 
 <script type="text/babel" data-type="module" data-presets="react">
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createClient } from '@supabase/supabase-js'
 
@@ -117,15 +117,6 @@ function findBestOption(options, scores, parameters) {
   return best
 }
 
-function normalizeOptions(options) {
-  if (!Array.isArray(options)) return []
-  return options.map(o => {
-    if (typeof o === 'string') return { label: o, score: null }
-    if (o && typeof o === 'object' && 'label' in o) return { label: o.label, score: o.score ?? null }
-    return null
-  }).filter(Boolean)
-}
-
 // ===== components/EditableText.jsx =====
 function EditableText({ value, onCommit, className, placeholder, inputMode }) {
   const [draft, setDraft] = useState(value ?? '')
@@ -141,64 +132,6 @@ function EditableText({ value, onCommit, className, placeholder, inputMode }) {
       onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
       className={className}
     />
-  )
-}
-
-// ===== components/ConfirmableDeleteButton.jsx =====
-function ConfirmableDeleteButton({ onConfirm, label = 'delete', size = 'sm' }) {
-  const [armed, setArmed] = useState(false)
-  const timerRef = useRef(null)
-
-  useEffect(() => {
-    if (armed) {
-      timerRef.current = setTimeout(() => setArmed(false), 3000)
-      const cancel = (e) => {
-        if (e.target.dataset?.confirmDelete !== 'true') setArmed(false)
-      }
-      document.addEventListener('click', cancel)
-      return () => {
-        clearTimeout(timerRef.current)
-        document.removeEventListener('click', cancel)
-      }
-    }
-  }, [armed])
-
-  const handleClick = (e) => {
-    e.stopPropagation()
-    if (armed) {
-      onConfirm()
-      setArmed(false)
-    } else {
-      setArmed(true)
-    }
-  }
-
-  return (
-    <button
-      onClick={handleClick}
-      data-confirm-delete="true"
-      title={armed ? `click again to ${label}` : label}
-      className={
-        armed
-          ? 'font-mono text-[10px] uppercase tracking-wider text-amber border border-amber/60 bg-amber/10 px-1.5 py-0.5'
-          : 'font-mono text-sm text-muted hover:text-amber transition'
-      }
-    >
-      {armed ? 'confirm?' : '×'}
-    </button>
-  )
-}
-
-// ===== components/MatrixActionButton.jsx =====
-function MatrixActionButton({ label, onClick, title }) {
-  return (
-    <button
-      onClick={(e) => { e.stopPropagation(); onClick() }}
-      title={title || label}
-      className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber transition px-1"
-    >
-      {label}
-    </button>
   )
 }
 
@@ -301,9 +234,10 @@ function SectionHeader({ title, meta }) {
 }
 
 // =============================================================================
-// MATRIX
+// PHASE 1: Typed parameters
 // =============================================================================
 
+// ===== components/ScoreBar.jsx =====
 function ScoreBar({ value }) {
   const pct = value == null ? 0 : Math.max(0, Math.min(100, (Number(value) / 10) * 100))
   return (
@@ -314,6 +248,9 @@ function ScoreBar({ value }) {
     </div>
   )
 }
+
+// ===== components/raw-inputs.jsx =====
+// One per input_type. All commit the raw value as the score's `notes` field.
 
 function TextRawInput({ value, onCommit }) {
   return (
@@ -341,24 +278,19 @@ function NumberRawInput({ value, unit, onCommit }) {
   )
 }
 
-function CategoricalRawInput({ value, options, onPick }) {
-  const opts = normalizeOptions(options)
-  const labels = opts.map(o => o.label)
-  const hasMatch = labels.includes(value)
+function CategoricalRawInput({ value, options, onCommit }) {
+  const safeOptions = Array.isArray(options) ? options : []
+  const hasMatch = safeOptions.includes(value)
   return (
     <div className="relative">
       <select
         value={hasMatch ? value : ''}
-        onChange={e => {
-          const label = e.target.value
-          const opt = opts.find(o => o.label === label)
-          onPick({ label, autoScore: opt?.score ?? null })
-        }}
+        onChange={e => onCommit(e.target.value)}
         className={`font-sans text-xs w-full leading-relaxed py-0.5 pr-4 cursor-pointer ${value && hasMatch ? 'text-paper/90' : 'text-muted'}`}
       >
         <option value="">—</option>
-        {opts.map(opt => (
-          <option key={opt.label} value={opt.label}>{opt.label}{opt.score != null ? ` (${opt.score})` : ''}</option>
+        {safeOptions.map(opt => (
+          <option key={opt} value={opt}>{opt}</option>
         ))}
         {value && !hasMatch && <option value={value}>{value} (custom)</option>}
       </select>
@@ -367,6 +299,7 @@ function CategoricalRawInput({ value, options, onPick }) {
   )
 }
 
+// ===== components/MatrixCell.jsx =====
 function MatrixCell({ score, parameter, onUpdate }) {
   const [scoreDraft, setScoreDraft] = useState(score?.value ?? '')
   useEffect(() => { setScoreDraft(score?.value ?? '') }, [score?.value])
@@ -382,24 +315,18 @@ function MatrixCell({ score, parameter, onUpdate }) {
     if (clamped !== score?.value) onUpdate({ value: clamped })
   }
 
+  const commitRaw = (v) => onUpdate({ notes: v })
+
   let rawInput
   switch (parameter.input_type) {
     case 'number':
-      rawInput = <NumberRawInput value={score?.notes ?? ''} unit={parameter.unit} onCommit={v => onUpdate({ notes: v })} />
+      rawInput = <NumberRawInput value={score?.notes ?? ''} unit={parameter.unit} onCommit={commitRaw} />
       break
     case 'categorical':
-      rawInput = <CategoricalRawInput
-        value={score?.notes ?? ''}
-        options={parameter.options}
-        onPick={({ label, autoScore }) => {
-          const updates = { notes: label }
-          if (autoScore != null) updates.value = autoScore
-          onUpdate(updates)
-        }}
-      />
+      rawInput = <CategoricalRawInput value={score?.notes ?? ''} options={parameter.options} onCommit={commitRaw} />
       break
     default:
-      rawInput = <TextRawInput value={score?.notes ?? ''} onCommit={v => onUpdate({ notes: v })} />
+      rawInput = <TextRawInput value={score?.notes ?? ''} onCommit={commitRaw} />
   }
 
   return (
@@ -423,51 +350,33 @@ function MatrixCell({ score, parameter, onUpdate }) {
   )
 }
 
-// ===== components/OptionInput.jsx (inside TypeEditor) =====
-function OptionInput({ option, onCommit, onRemove }) {
-  const [labelDraft, setLabelDraft] = useState(option.label ?? '')
-  const [scoreDraft, setScoreDraft] = useState(option.score ?? '')
-  useEffect(() => { setLabelDraft(option.label ?? '') }, [option.label])
-  useEffect(() => { setScoreDraft(option.score ?? '') }, [option.score])
-
-  const commitLabel = () => {
-    if (labelDraft !== option.label) onCommit({ label: labelDraft, score: option.score })
-  }
-  const commitScore = () => {
-    if (scoreDraft === '' || scoreDraft === null) {
-      if (option.score != null) onCommit({ label: option.label, score: null })
-      return
-    }
-    const num = parseFloat(scoreDraft)
-    if (isNaN(num)) { setScoreDraft(option.score ?? ''); return }
-    const clamped = Math.max(0, Math.min(10, num))
-    if (clamped !== option.score) onCommit({ label: option.label, score: clamped })
-  }
-
+// ===== components/OptionInput.jsx (used inside TypeEditor for editing categorical options) =====
+function OptionInput({ value, onCommit, onRemove }) {
+  const [draft, setDraft] = useState(value ?? '')
+  useEffect(() => { setDraft(value ?? '') }, [value])
   return (
     <div className="flex items-center gap-1 mb-1">
       <input
-        type="text" value={labelDraft}
-        onChange={e => setLabelDraft(e.target.value)} onBlur={commitLabel}
+        type="text"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={() => { if (draft !== value) onCommit(draft) }}
         onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
-        placeholder="option label…"
+        placeholder="option…"
         className="flex-1 font-sans text-[11px] border border-rule/40 px-1.5 py-0.5 text-paper/90"
       />
-      <input
-        type="number" min="0" max="10" step="0.5" value={scoreDraft}
-        onChange={e => setScoreDraft(e.target.value)} onBlur={commitScore}
-        onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
-        placeholder="—" title="default score (0-10)"
-        className="w-12 font-mono text-[11px] text-right border border-rule/40 px-1 py-0.5 text-amber"
-      />
-      <button onClick={onRemove} className="font-mono text-xs text-muted hover:text-amber w-3 shrink-0">×</button>
+      <button
+        onClick={onRemove}
+        className="font-mono text-xs text-muted hover:text-amber w-3 shrink-0"
+        title="remove"
+      >×</button>
     </div>
   )
 }
 
 // ===== components/TypeEditor.jsx =====
 function TypeEditor({ parameter, onUpdate, onClose }) {
-  const options = normalizeOptions(parameter.options)
+  const options = Array.isArray(parameter.options) ? parameter.options : []
 
   const handleTypeChange = (newType) => {
     const updates = { input_type: newType }
@@ -475,10 +384,18 @@ function TypeEditor({ parameter, onUpdate, onClose }) {
     if (newType !== 'categorical') {
       updates.options = null
     } else if (newType === 'categorical' && options.length === 0) {
-      updates.options = [{ label: '', score: null }, { label: '', score: null }]
+      updates.options = ['', '']
     }
     onUpdate(updates)
   }
+
+  const updateOption = (idx, value) => {
+    const next = [...options]
+    next[idx] = value
+    onUpdate({ options: next })
+  }
+  const addOption = () => onUpdate({ options: [...options, ''] })
+  const removeOption = (idx) => onUpdate({ options: options.filter((_, i) => i !== idx) })
 
   return (
     <div className="mt-3 p-2 border border-rule/40 bg-amber/[0.02] space-y-2">
@@ -509,29 +426,19 @@ function TypeEditor({ parameter, onUpdate, onClose }) {
 
       {parameter.input_type === 'categorical' && (
         <div>
-          <div className="flex items-baseline justify-between mb-1.5">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-muted">options</span>
-            <span className="font-mono text-[10px] text-muted/60">label · auto-score</span>
-          </div>
+          <div className="font-mono text-[10px] uppercase tracking-wider text-muted mb-1.5">options</div>
           {options.map((opt, idx) => (
             <OptionInput
               key={idx}
-              option={opt}
-              onCommit={v => {
-                const next = [...options]
-                next[idx] = v
-                onUpdate({ options: next })
-              }}
-              onRemove={() => onUpdate({ options: options.filter((_, i) => i !== idx) })}
+              value={opt}
+              onCommit={v => updateOption(idx, v)}
+              onRemove={() => removeOption(idx)}
             />
           ))}
           <button
-            onClick={() => onUpdate({ options: [...options, { label: '', score: null }] })}
+            onClick={addOption}
             className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber transition mt-1"
           >+ add option</button>
-          <p className="font-mono text-[9px] text-muted/60 mt-2 leading-relaxed">
-            picking an option in a cell auto-fills its score. you can still manually override per cell.
-          </p>
         </div>
       )}
 
@@ -544,34 +451,33 @@ function TypeEditor({ parameter, onUpdate, onClose }) {
 }
 
 // ===== components/ParameterRowHeader.jsx =====
-function ParameterRowHeader({ parameter, onUpdate, onDelete, onDuplicate, onArchive }) {
+function ParameterRowHeader({ parameter, onUpdate, onDelete }) {
   const [editing, setEditing] = useState(false)
 
   const typeSummary = () => {
     const t = parameter.input_type || 'text'
     if (t === 'number') return `number · ${parameter.unit || 'no unit'}`
     if (t === 'categorical') {
-      const opts = normalizeOptions(parameter.options)
-      const scored = opts.filter(o => o.score != null).length
-      return `categorical · ${opts.length} options${scored === opts.length && opts.length > 0 ? ' · all scored' : ''}`
+      const n = Array.isArray(parameter.options) ? parameter.options.length : 0
+      return `categorical · ${n} options`
     }
     return 'text'
   }
 
   return (
     <th className="text-left align-top p-0 group">
-      <div className="p-2.5 pr-4 min-w-[220px] max-w-[280px]">
+      <div className="p-2.5 pr-4 min-w-[220px] max-w-[260px]">
         <div className="flex items-start gap-2">
           <EditableText
             value={parameter.name}
             onCommit={v => onUpdate({ name: v })}
             className="font-sans text-sm font-medium text-paper flex-1"
           />
-          <div className="opacity-0 group-hover:opacity-100 transition flex items-center gap-1 shrink-0">
-            <MatrixActionButton label="dup" onClick={onDuplicate} title="duplicate (copies all scores)" />
-            <MatrixActionButton label="arc" onClick={onArchive} title="archive (reversible)" />
-            <ConfirmableDeleteButton onConfirm={onDelete} label="permanently delete" />
-          </div>
+          <button
+            onClick={onDelete}
+            title="delete parameter"
+            className="font-mono text-sm text-muted opacity-0 group-hover:opacity-100 hover:text-amber transition"
+          >×</button>
         </div>
         <div className="flex items-center gap-2 mt-2">
           <input
@@ -602,7 +508,7 @@ function ParameterRowHeader({ parameter, onUpdate, onDelete, onDuplicate, onArch
 }
 
 // ===== components/OptionColHeader.jsx =====
-function OptionColHeader({ option, isBest, onUpdate, onDelete, onDuplicate, onArchive }) {
+function OptionColHeader({ option, isBest, onUpdate, onDelete }) {
   return (
     <th className="align-bottom p-0 group">
       <div className="p-2.5 min-w-[160px] border-l border-rule/30">
@@ -613,15 +519,13 @@ function OptionColHeader({ option, isBest, onUpdate, onDelete, onDuplicate, onAr
             onCommit={v => onUpdate({ name: v })}
             className={`font-sans text-sm font-medium flex-1 ${isBest ? 'text-amber' : 'text-paper'}`}
           />
+          <button
+            onClick={onDelete}
+            title="delete option"
+            className="font-mono text-sm text-muted opacity-0 group-hover:opacity-100 hover:text-amber transition"
+          >×</button>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted/60">option</span>
-          <div className="opacity-0 group-hover:opacity-100 transition flex items-center gap-1">
-            <MatrixActionButton label="dup" onClick={onDuplicate} title="duplicate (copies all scores)" />
-            <MatrixActionButton label="arc" onClick={onArchive} title="archive (reversible)" />
-            <ConfirmableDeleteButton onConfirm={onDelete} label="permanently delete" />
-          </div>
-        </div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted/60">option</div>
       </div>
     </th>
   )
@@ -644,10 +548,11 @@ function AddParameterRow({ colSpan, onAdd }) {
         </div>
       </th>
       <td colSpan={colSpan} className="p-2.5">
-        <button onClick={handle} disabled={!draft.trim()}
-          className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber disabled:opacity-30 disabled:hover:text-muted transition">
-          press enter to add
-        </button>
+        <button
+          onClick={handle}
+          disabled={!draft.trim()}
+          className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber disabled:opacity-30 disabled:hover:text-muted transition"
+        >press enter to add</button>
       </td>
     </tr>
   )
@@ -665,10 +570,11 @@ function AddOptionCol({ rowCount, onAdd }) {
           placeholder="+ option…"
           className="font-sans text-sm text-muted hover:text-paper focus:text-paper w-full mb-2"
         />
-        <button onClick={handle} disabled={!draft.trim()}
-          className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber disabled:opacity-30 disabled:hover:text-muted transition">
-          enter
-        </button>
+        <button
+          onClick={handle}
+          disabled={!draft.trim()}
+          className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber disabled:opacity-30 disabled:hover:text-muted transition"
+        >enter</button>
       </div>
     </th>
   )
@@ -734,8 +640,6 @@ function ScoreMatrix({ parameters, options, scores, paramHandlers, optionHandler
                   isBest={best?.id === o.id}
                   onUpdate={fields => optionHandlers.onUpdate(o.id, fields)}
                   onDelete={() => optionHandlers.onDelete(o.id)}
-                  onDuplicate={() => optionHandlers.onDuplicate(o.id)}
-                  onArchive={() => optionHandlers.onArchive(o.id)}
                 />
               ))}
               <AddOptionCol rowCount={parameters.length + 2} onAdd={optionHandlers.onAdd} />
@@ -748,8 +652,6 @@ function ScoreMatrix({ parameters, options, scores, paramHandlers, optionHandler
                   parameter={p}
                   onUpdate={fields => paramHandlers.onUpdate(p.id, fields)}
                   onDelete={() => paramHandlers.onDelete(p.id)}
-                  onDuplicate={() => paramHandlers.onDuplicate(p.id)}
-                  onArchive={() => paramHandlers.onArchive(p.id)}
                 />
                 {options.map(o => (
                   <MatrixCell
@@ -792,60 +694,8 @@ function ScoreMatrix({ parameters, options, scores, paramHandlers, optionHandler
   )
 }
 
-// ===== components/ArchivedSection.jsx =====
-function ArchivedSection({ options, parameters, optionHandlers, paramHandlers }) {
-  if (options.length === 0 && parameters.length === 0) return null
-
-  return (
-    <div className="mt-16 border-t border-rule pt-6">
-      <SectionHeader title="archived" meta={`${options.length + parameters.length} items`} />
-
-      {options.length > 0 && (
-        <div className="mb-6">
-          <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mb-3">options · {options.length}</h3>
-          {options.map(o => (
-            <div key={o.id} className="flex items-center justify-between py-2 border-b border-rule/30 group">
-              <span className="font-sans text-sm text-muted italic">{o.name || 'untitled'}</span>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => optionHandlers.onRestore(o.id)}
-                  className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber transition"
-                >restore</button>
-                <ConfirmableDeleteButton onConfirm={() => optionHandlers.onDelete(o.id)} label="permanently delete" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {parameters.length > 0 && (
-        <div>
-          <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mb-3">parameters · {parameters.length}</h3>
-          {parameters.map(p => (
-            <div key={p.id} className="flex items-center justify-between py-2 border-b border-rule/30 group">
-              <span className="font-sans text-sm text-muted italic">{p.name || 'untitled'}</span>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => paramHandlers.onRestore(p.id)}
-                  className="font-mono text-[10px] uppercase tracking-wider text-muted hover:text-amber transition"
-                >restore</button>
-                <ConfirmableDeleteButton onConfirm={() => paramHandlers.onDelete(p.id)} label="permanently delete" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ===== components/DecisionView.jsx =====
 function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, optionHandlers, onScoreUpdate }) {
-  const activeParameters = data.parameters.filter(p => !p.archived_at)
-  const archivedParameters = data.parameters.filter(p => p.archived_at)
-  const activeOptions = data.options.filter(o => !o.archived_at)
-  const archivedOptions = data.options.filter(o => o.archived_at)
-
   return (
     <main className="px-8 py-10 max-w-7xl mx-auto flex-1 w-full">
       <button onClick={onBack}
@@ -860,18 +710,12 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
         </p>
       </div>
       <ScoreMatrix
-        parameters={activeParameters}
-        options={activeOptions}
+        parameters={data.parameters}
+        options={data.options}
         scores={data.scores}
         paramHandlers={paramHandlers}
         optionHandlers={optionHandlers}
         onScoreUpdate={onScoreUpdate}
-      />
-      <ArchivedSection
-        options={archivedOptions}
-        parameters={archivedParameters}
-        optionHandlers={optionHandlers}
-        paramHandlers={paramHandlers}
       />
     </main>
   )
@@ -910,9 +754,8 @@ function App() {
       supabase.from('sigma_scores').select('*, sigma_options!inner(decision_id)').in('sigma_options.decision_id', ids),
     ])
     const enriched = decs.map(d => {
-      // Count and compute totals using only ACTIVE items (non-archived)
-      const parameters = (pRes.data || []).filter(p => p.decision_id === d.id && !p.archived_at)
-      const options = (oRes.data || []).filter(o => o.decision_id === d.id && !o.archived_at)
+      const parameters = (pRes.data || []).filter(p => p.decision_id === d.id)
+      const options = (oRes.data || []).filter(o => o.decision_id === d.id)
       const scores = (sRes.data || []).filter(s => s.sigma_options?.decision_id === d.id)
       const best = findBestOption(options, scores, parameters)
       const bestOption = best ? options.find(o => o.id === best.id) : null
@@ -957,11 +800,9 @@ function App() {
     await supabase.from('sigma_decisions').update({ title }).eq('id', selectedId)
   }
 
-  // -- Parameter handlers --
   async function addParameter(name) {
-    const activeParams = decisionData.parameters.filter(p => !p.archived_at)
     const { data } = await supabase.from('sigma_parameters')
-      .insert({ decision_id: selectedId, name, weight: 5.0, display_order: activeParams.length, input_type: 'text' })
+      .insert({ decision_id: selectedId, name, weight: 5.0, display_order: decisionData.parameters.length, input_type: 'text' })
       .select().single()
     if (data) setDecisionData(prev => ({ ...prev, parameters: [...prev.parameters, data] }))
   }
@@ -980,72 +821,9 @@ function App() {
     await supabase.from('sigma_parameters').delete().eq('id', id)
   }
 
-  async function duplicateParameter(id) {
-    const original = decisionData.parameters.find(p => p.id === id)
-    if (!original) return
-    const activeParams = decisionData.parameters.filter(p => !p.archived_at)
-    const sortedActive = [...activeParams].sort((a, b) => a.display_order - b.display_order)
-    const toShift = sortedActive.filter(p => p.display_order > original.display_order)
-    // 1. Bump display_orders of params after the original
-    for (const p of toShift) {
-      await supabase.from('sigma_parameters').update({ display_order: p.display_order + 1 }).eq('id', p.id)
-    }
-    // 2. Insert new parameter with same config
-    const { data: newParam } = await supabase.from('sigma_parameters').insert({
-      decision_id: original.decision_id,
-      name: `${original.name} (copy)`,
-      weight: original.weight,
-      input_type: original.input_type,
-      unit: original.unit,
-      options: original.options,
-      description: original.description,
-      display_order: original.display_order + 1,
-      category: original.category,
-      has_uncertainty: original.has_uncertainty,
-    }).select().single()
-    if (!newParam) return
-    // 3. Copy scores: for each option, copy the score on the original param
-    const origScores = decisionData.scores.filter(s => s.parameter_id === id)
-    if (origScores.length > 0) {
-      const newScores = origScores.map(s => ({
-        option_id: s.option_id,
-        parameter_id: newParam.id,
-        value: s.value,
-        notes: s.notes,
-        min_value: s.min_value,
-        max_value: s.max_value,
-        confidence: s.confidence,
-      }))
-      await supabase.from('sigma_scores').insert(newScores)
-    }
-    await loadDecisionDetail(selectedId)
-  }
-
-  async function archiveParameter(id) {
-    const now = new Date().toISOString()
-    setDecisionData(prev => ({
-      ...prev,
-      parameters: prev.parameters.map(p => p.id === id ? { ...p, archived_at: now } : p),
-    }))
-    await supabase.from('sigma_parameters').update({ archived_at: now }).eq('id', id)
-  }
-
-  async function restoreParameter(id) {
-    const activeParams = decisionData.parameters.filter(p => !p.archived_at)
-    const maxOrder = activeParams.length > 0 ? Math.max(...activeParams.map(p => p.display_order)) : -1
-    const updates = { archived_at: null, display_order: maxOrder + 1 }
-    setDecisionData(prev => ({
-      ...prev,
-      parameters: prev.parameters.map(p => p.id === id ? { ...p, ...updates } : p),
-    }))
-    await supabase.from('sigma_parameters').update(updates).eq('id', id)
-  }
-
-  // -- Option handlers --
   async function addOption(name) {
-    const activeOpts = decisionData.options.filter(o => !o.archived_at)
     const { data } = await supabase.from('sigma_options')
-      .insert({ decision_id: selectedId, name, display_order: activeOpts.length })
+      .insert({ decision_id: selectedId, name, display_order: decisionData.options.length })
       .select().single()
     if (data) setDecisionData(prev => ({ ...prev, options: [...prev.options, data] }))
   }
@@ -1062,61 +840,6 @@ function App() {
       scores: prev.scores.filter(s => s.option_id !== id),
     }))
     await supabase.from('sigma_options').delete().eq('id', id)
-  }
-
-  async function duplicateOption(id) {
-    const original = decisionData.options.find(o => o.id === id)
-    if (!original) return
-    const activeOpts = decisionData.options.filter(o => !o.archived_at)
-    const sortedActive = [...activeOpts].sort((a, b) => a.display_order - b.display_order)
-    const toShift = sortedActive.filter(o => o.display_order > original.display_order)
-    // 1. Bump display_orders
-    for (const o of toShift) {
-      await supabase.from('sigma_options').update({ display_order: o.display_order + 1 }).eq('id', o.id)
-    }
-    // 2. Insert new option
-    const { data: newOpt } = await supabase.from('sigma_options').insert({
-      decision_id: original.decision_id,
-      name: `${original.name} (copy)`,
-      notes: original.notes,
-      display_order: original.display_order + 1,
-    }).select().single()
-    if (!newOpt) return
-    // 3. Copy scores
-    const origScores = decisionData.scores.filter(s => s.option_id === id)
-    if (origScores.length > 0) {
-      const newScores = origScores.map(s => ({
-        option_id: newOpt.id,
-        parameter_id: s.parameter_id,
-        value: s.value,
-        notes: s.notes,
-        min_value: s.min_value,
-        max_value: s.max_value,
-        confidence: s.confidence,
-      }))
-      await supabase.from('sigma_scores').insert(newScores)
-    }
-    await loadDecisionDetail(selectedId)
-  }
-
-  async function archiveOption(id) {
-    const now = new Date().toISOString()
-    setDecisionData(prev => ({
-      ...prev,
-      options: prev.options.map(o => o.id === id ? { ...o, archived_at: now } : o),
-    }))
-    await supabase.from('sigma_options').update({ archived_at: now }).eq('id', id)
-  }
-
-  async function restoreOption(id) {
-    const activeOpts = decisionData.options.filter(o => !o.archived_at)
-    const maxOrder = activeOpts.length > 0 ? Math.max(...activeOpts.map(o => o.display_order)) : -1
-    const updates = { archived_at: null, display_order: maxOrder + 1 }
-    setDecisionData(prev => ({
-      ...prev,
-      options: prev.options.map(o => o.id === id ? { ...o, ...updates } : o),
-    }))
-    await supabase.from('sigma_options').update(updates).eq('id', id)
   }
 
   async function updateScore(optionId, parameterId, updates) {
@@ -1154,9 +877,9 @@ function App() {
           <p className="font-mono text-xs uppercase tracking-wider text-muted mb-4">configuration required</p>
           <p className="font-sans text-sm leading-relaxed">
             {supabaseInitError === 'placeholder' ? (
-              <>Open <span className="font-mono text-amber">index.html</span> and replace credentials.</>
+              <>Open <span className="font-mono text-amber">index.html</span> and replace <span className="font-mono text-amber">YOUR_SUPABASE_URL</span> and <span className="font-mono text-amber">YOUR_SUPABASE_ANON_KEY</span> with your General_apps project credentials.</>
             ) : (
-              <>Supabase config error: <span className="font-mono text-amber">{supabaseInitError}</span></>
+              <>Supabase config error: <span className="font-mono text-amber">{supabaseInitError}</span>. Make sure your URL starts with <span className="font-mono text-amber">https://</span>.</>
             )}
           </p>
         </div>
@@ -1175,30 +898,16 @@ function App() {
           data={decisionData}
           onBack={goHome}
           onTitleUpdate={updateDecisionTitle}
-          paramHandlers={{
-            onAdd: addParameter,
-            onUpdate: updateParameter,
-            onDelete: deleteParameter,
-            onDuplicate: duplicateParameter,
-            onArchive: archiveParameter,
-            onRestore: restoreParameter,
-          }}
-          optionHandlers={{
-            onAdd: addOption,
-            onUpdate: updateOption,
-            onDelete: deleteOption,
-            onDuplicate: duplicateOption,
-            onArchive: archiveOption,
-            onRestore: restoreOption,
-          }}
+          paramHandlers={{ onAdd: addParameter, onUpdate: updateParameter, onDelete: deleteParameter }}
+          optionHandlers={{ onAdd: addOption, onUpdate: updateOption, onDelete: deleteOption }}
           onScoreUpdate={updateScore}
         />
       ) : (
         <div className="px-8 py-16 font-mono text-xs text-muted">loading…</div>
       )}
       <footer className="border-t border-rule mt-auto px-8 py-6 font-mono text-[10px] uppercase tracking-[0.2em] text-muted/60 flex justify-between">
-        <span>Σ sigma — v0.6</span>
-        <span>duplicate + archive</span>
+        <span>Σ sigma — v0.4</span>
+        <span>typed parameters</span>
       </footer>
     </div>
   )
