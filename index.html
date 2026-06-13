@@ -372,10 +372,15 @@ function Home({ decisions, onOpen, onNew, loading }) {
     <div>
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 28px 64px' }}>
         <div style={{ marginBottom: 36 }}>
-          <span className="label">{open.length} open · {closed.length} closed · {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+          <span className="label">{loading ? 'loading…' : `${open.length} open · ${closed.length} closed`} · {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
           <h1 style={{ fontSize: 'clamp(32px, 4.5vw, 52px)', fontWeight: 500, letterSpacing: '-0.02em', margin: '12px 0 0', lineHeight: 1.05, maxWidth: 760 }}>
-            {open.length === 0 ? 'No questions on your desk.' : `${open.length} ${open.length === 1 ? 'question' : 'questions'} on your desk.`}{' '}
-            <span style={{ color: 'var(--ink-faint)' }}>{open.length === 0 ? 'Open a new one when something is weighing on you.' : 'Make one of them a little less heavy today.'}</span>
+            {loading ? (
+              <span>Picking up where you left off…</span>
+            ) : open.length === 0 ? (
+              <>No questions on your desk. <span style={{ color: 'var(--ink-faint)' }}>Open a new one when something is weighing on you.</span></>
+            ) : (
+              <>{open.length} {open.length === 1 ? 'question' : 'questions'} on your desk. <span style={{ color: 'var(--ink-faint)' }}>Make one of them a little less heavy today.</span></>
+            )}
           </h1>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
@@ -391,7 +396,18 @@ function Home({ decisions, onOpen, onNew, loading }) {
           {loading ? (
             <div style={{ padding: 48, textAlign: 'center' }}><span className="label">loading…</span></div>
           ) : open.length === 0 ? (
-            <div style={{ padding: 48, textAlign: 'center' }}><span className="label">no open decisions yet</span></div>
+            <div style={{ padding: '56px 32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--bg-inset)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 600, color: 'var(--ink-faint)' }}>Σ</div>
+              <div>
+                <div style={{ fontSize: 17, fontWeight: 500, marginBottom: 4 }}>Nothing to weigh yet.</div>
+                <div style={{ fontSize: 13, color: 'var(--ink-soft)', maxWidth: 380, lineHeight: 1.5 }}>
+                  Start with a question you've been turning over — a job, a flat, a name. List what matters, score the options, let the math fight your bias.
+                </div>
+              </div>
+              <button className="btn btn-primary" onClick={onNew}>
+                <span style={{ fontSize: 15, lineHeight: 1 }}>+</span> New decision
+              </button>
+            </div>
           ) : (
             open.map((d, i) => <HomeRow key={d.id} d={d} idx={i + 1} onClick={() => onOpen(d.id)} />)
           )}
