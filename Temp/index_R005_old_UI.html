@@ -15,14 +15,12 @@
     --bg-soft:  oklch(0.965 0.005 95);
     --bg-inset: oklch(0.945 0.005 95);
     --ink:      oklch(0.15 0.015 240);
-    --ink-deep: oklch(0.19 0.03 265);
     --ink-soft: oklch(0.38 0.012 240);
     --ink-faint:oklch(0.62 0.010 240);
     --ink-ghost:oklch(0.82 0.008 240);
     --rule:     oklch(0.90 0.006 240);
     --rule-soft:oklch(0.945 0.005 240);
     --accent:     oklch(0.58 0.16 145);
-    --accent-2:   oklch(0.62 0.15 175);
     --accent-soft:oklch(0.93 0.05 145);
     --accent-ink: oklch(0.32 0.13 145);
     --neg:      oklch(0.62 0.18 30);
@@ -31,30 +29,13 @@
     --warn-soft:oklch(0.96 0.05 75);
     --hi:       oklch(0.5 0.16 260);
     --hi-soft:  oklch(0.94 0.04 260);
-    --shadow-sm: 0 1px 2px oklch(0.4 0.05 265 / 0.05), 0 2px 6px oklch(0.4 0.05 265 / 0.05);
-    --shadow-md: 0 2px 6px oklch(0.4 0.05 265 / 0.06), 0 12px 28px oklch(0.4 0.05 265 / 0.08);
-    --shadow-lg: 0 8px 24px oklch(0.4 0.05 265 / 0.10), 0 24px 60px oklch(0.4 0.05 265 / 0.12);
   }
-  html { background: var(--bg); }
-  body {
+  html, body {
     margin: 0; padding: 0;
-    color: var(--ink);
+    background: var(--bg); color: var(--ink);
     font-family: 'Geist', 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
-    background: transparent;
   }
-  /* animated aurora background — drifting colored blobs behind everything */
-  #aurora { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--bg); }
-  #aurora .blob { position: absolute; border-radius: 50%; filter: blur(64px); opacity: 0.7; will-change: transform; }
-  #aurora .b1 { width: 46vw; height: 46vw; background: oklch(0.80 0.16 150); top: -12vw; left: -8vw; animation: drift1 22s ease-in-out infinite; }
-  #aurora .b2 { width: 42vw; height: 42vw; background: oklch(0.78 0.16 260); top: -8vw; right: -10vw; animation: drift2 26s ease-in-out infinite; }
-  #aurora .b3 { width: 40vw; height: 40vw; background: oklch(0.82 0.15 320); bottom: -16vw; left: 18vw; animation: drift3 30s ease-in-out infinite; }
-  #aurora .b4 { width: 34vw; height: 34vw; background: oklch(0.82 0.16 60); bottom: -10vw; right: 8vw; animation: drift4 25s ease-in-out infinite; }
-  @keyframes drift1 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(16vw,10vw) scale(1.18); } 66% { transform: translate(8vw,18vw) scale(0.9); } }
-  @keyframes drift2 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(-14vw,14vw) scale(0.88); } 66% { transform: translate(-6vw,5vw) scale(1.2); } }
-  @keyframes drift3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(18vw,-14vw) scale(1.22); } }
-  @keyframes drift4 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-16vw,-12vw) scale(0.86); } }
-  @media (prefers-reduced-motion: reduce) { #aurora .blob { animation: none; } }
   * { box-sizing: border-box; }
   ::selection { background: var(--accent-soft); color: var(--accent-ink); }
   button, input, select, textarea { font: inherit; color: inherit; }
@@ -66,38 +47,25 @@
   ::-webkit-scrollbar-thumb:hover { background: var(--ink-ghost); }
   .mono { font-family: 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
   .label { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
-  .pill { display: inline-flex; align-items: center; padding: 2px 8px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 999px; white-space: nowrap; }
-  .card { background: var(--bg); border: 1px solid var(--rule); border-radius: 14px; box-shadow: var(--shadow-md); }
-  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px; font-size: 13px; font-weight: 500; border: 1px solid transparent; border-radius: 8px; transition: all 120ms; line-height: 1.2; }
+  .pill { display: inline-flex; align-items: center; padding: 2px 8px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 3px; white-space: nowrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; font-size: 13px; font-weight: 500; border: 1px solid transparent; border-radius: 6px; transition: all 120ms; line-height: 1.2; }
   .btn-sm { padding: 6px 11px; font-size: 12px; }
-  .btn-primary { background: linear-gradient(180deg, oklch(0.26 0.03 265), var(--ink)); color: #fff; border-color: var(--ink); box-shadow: var(--shadow-sm); }
-  .btn-primary:hover { filter: brightness(1.15); }
-  .btn-accent  { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border-color: transparent; box-shadow: var(--shadow-sm); }
-  .btn-accent:hover { filter: brightness(1.06); }
-  .btn-outline { background: var(--bg); color: var(--ink); border-color: var(--rule); box-shadow: var(--shadow-sm); }
-  .btn-outline:hover { background: var(--bg-soft); border-color: var(--ink-ghost); }
+  .btn-primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .btn-accent  { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .btn-outline { background: var(--bg); color: var(--ink); border-color: var(--rule); }
+  .btn-outline:hover { background: var(--bg-soft); }
   .btn-ghost   { background: transparent; color: var(--ink); border-color: transparent; }
   .btn-ghost:hover { background: var(--bg-soft); }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .iconbtn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--ink-soft); font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; }
   .iconbtn:hover { background: var(--bg-inset); color: var(--ink); }
-  .overlay-bg { position: fixed; inset: 0; background: oklch(0.15 0.015 240 / 0.55); z-index: 50; display: flex; align-items: center; justify-content: center; animation: fadein 200ms; backdrop-filter: blur(3px); }
+  .overlay-bg { position: fixed; inset: 0; background: oklch(0.15 0.015 240 / 0.55); z-index: 50; display: flex; align-items: center; justify-content: center; animation: fadein 200ms; }
   @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
   @keyframes slideright { from { transform: translateX(60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
   @keyframes popin { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .overlay-card { background: var(--bg); color: var(--ink); border-radius: 14px; box-shadow: var(--shadow-lg); max-height: 90vh; overflow: auto; animation: popin 220ms cubic-bezier(0.16,1,0.3,1); }
+  .overlay-card { background: var(--bg); color: var(--ink); border-radius: 10px; box-shadow: 0 30px 60px rgba(0,0,0,0.25); max-height: 90vh; overflow: auto; animation: popin 220ms cubic-bezier(0.16,1,0.3,1); }
   .drawer-card { background: var(--bg); color: var(--ink); width: 460px; max-width: 95vw; height: 100%; overflow: auto; box-shadow: -20px 0 40px rgba(0,0,0,0.2); animation: slideright 220ms cubic-bezier(0.16,1,0.3,1); }
   input[type=range] { -webkit-appearance: none; background: transparent; }
-  .btn:active { transform: translateY(1px); }
-  .bg-aurora { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
-  .bg-aurora b { position: absolute; display: block; border-radius: 50%; filter: blur(80px); opacity: 0.55; will-change: transform; }
-  .bg-aurora .b1 { width: 560px; height: 560px; background: oklch(0.86 0.13 150); top: -180px; right: -60px; animation: drift1 24s ease-in-out infinite alternate; }
-  .bg-aurora .b2 { width: 520px; height: 520px; background: oklch(0.83 0.13 285); bottom: -200px; left: -120px; animation: drift2 30s ease-in-out infinite alternate; }
-  .bg-aurora .b3 { width: 460px; height: 460px; background: oklch(0.86 0.11 215); top: 28%; left: 46%; opacity: 0.4; animation: drift3 34s ease-in-out infinite alternate; }
-  @keyframes drift1 { from { transform: translate(0,0) scale(1); } to { transform: translate(-90px,70px) scale(1.18); } }
-  @keyframes drift2 { from { transform: translate(0,0) scale(1); } to { transform: translate(100px,-60px) scale(1.12); } }
-  @keyframes drift3 { from { transform: translate(0,0) scale(1); } to { transform: translate(-70px,-80px) scale(1.22); } }
-  @media (prefers-reduced-motion: reduce) { .bg-aurora b { animation: none !important; } }
 </style>
 
 <script type="importmap">
@@ -113,11 +81,10 @@
 <script src="https://unpkg.com/@babel/standalone@7.24.4/babel.min.js"></script>
 </head>
 <body>
-<div id="aurora"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div></div>
 <div id="root"></div>
 
 <script type="text/babel" data-type="module" data-presets="react">
-import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createClient } from '@supabase/supabase-js'
 
@@ -134,6 +101,7 @@ try {
 } catch (e) {
   supabaseInitError = e.message || String(e)
 }
+
 // =============================================================================
 // CALCULATIONS
 // =============================================================================
@@ -223,35 +191,6 @@ function applyAccent(hue) {
   r.style.setProperty('--accent-soft', `oklch(0.93 0.05 ${hue})`)
   r.style.setProperty('--accent-ink',  `oklch(0.32 0.13 ${hue})`)
 }
-
-// ── color system ───────────────────────────────────────────────────────────
-// Each decision "kind" resolves (by keyword) to a distinct icon + hue, so real
-// type names like "Housing" or "Career" each get a unique icon, not a shared
-// fallback. Each option gets a stable color by position.
-const KIND_DEFS = [
-  { test: /job|career|work|offer|employ/i,                   emoji: '💼', hue: 255 },
-  { test: /apart|hous|home|flat|rent|move|live|condo/i,      emoji: '🏠', hue: 155 },
-  { test: /nam|brand|title|label/i,                          emoji: '🏷️', hue: 305 },
-  { test: /strateg|focus|business|product|roadmap|q[1-4]/i,  emoji: '🎯', hue: 75 },
-  { test: /school|study|colleg|univ|educat|course|degree/i,  emoji: '🎓', hue: 215 },
-  { test: /car|vehicle|auto|bike/i,                          emoji: '🚗', hue: 25 },
-  { test: /invest|money|financ|budget|stock|fund/i,          emoji: '💰', hue: 130 },
-  { test: /travel|trip|vacation|holiday|flight/i,            emoji: '✈️', hue: 235 },
-  { test: /health|doctor|medical|fitness/i,                  emoji: '🩺', hue: 10 },
-  { test: /food|restaurant|eat|meal|recipe/i,                emoji: '🍽️', hue: 55 },
-  { test: /relationship|partner|date|love|family/i,          emoji: '❤️', hue: 350 },
-  { test: /life|personal/i,                                  emoji: '🧭', hue: 195 },
-]
-const KIND_FALLBACK = { emoji: '🗳️', hue: 285 }
-function kindDef(kind) { const k = String(kind || ''); return KIND_DEFS.find(d => d.test.test(k)) || KIND_FALLBACK }
-function kindEmoji(kind) { return kindDef(kind).emoji }
-function kindHue(kind) { return kindDef(kind).hue }
-function kindColor(kind) { return `oklch(0.56 0.15 ${kindHue(kind)})` }
-function kindSoft(kind) { return `oklch(0.94 0.05 ${kindHue(kind)})` }
-// option palette — distinct, evenly-spread hues, muted enough to coexist
-const OPTION_HUES = [255, 25, 155, 305, 75, 200, 340, 120, 285, 45]
-function optionColor(i) { return `oklch(0.6 0.14 ${OPTION_HUES[i % OPTION_HUES.length]})` }
-function optionSoft(i) { return `oklch(0.95 0.045 ${OPTION_HUES[i % OPTION_HUES.length]})` }
 
 // =============================================================================
 // SMALL UI ATOMS
@@ -373,23 +312,21 @@ function RawInput({ value, onChange, unit, type, options }) {
 function TopHeader({ middle, onHome, onNew }) {
   return (
     <header style={{
-      padding: '12px 22px',
+      padding: '12px 20px', borderBottom: '1px solid var(--rule)',
       display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 16,
-      background: 'linear-gradient(100deg, var(--ink-deep), var(--ink))',
-      color: '#fff', position: 'sticky', top: 0, zIndex: 30,
-      boxShadow: 'var(--shadow-md)',
+      background: 'var(--bg)', position: 'sticky', top: 0, zIndex: 30, backdropFilter: 'blur(8px)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <button onClick={onHome} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'transparent', border: 'none', padding: 0, color: '#fff' }}>
-          <div style={{ width: 26, height: 26, background: 'linear-gradient(135deg, var(--accent), var(--accent-2))', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, borderRadius: 7, boxShadow: '0 2px 8px oklch(0.58 0.16 145 / 0.4)' }}>Σ</div>
+        <button onClick={onHome} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', padding: 0 }}>
+          <div style={{ width: 24, height: 24, background: 'var(--ink)', color: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 14, borderRadius: 5 }}>Σ</div>
           <span style={{ fontWeight: 600, fontSize: 15, letterSpacing: '-0.01em' }}>Sigma</span>
         </button>
-        <span style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.2)' }} />
-        <span className="label" style={{ color: 'rgba(255,255,255,0.6)' }}>decisions, decomposed</span>
+        <span style={{ width: 1, height: 14, background: 'var(--rule)' }} />
+        <span className="label">decisions, decomposed</span>
       </div>
       <div style={{ textAlign: 'center', minWidth: 0 }}>{middle}</div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
-        <button className="btn btn-sm" onClick={onNew} style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
+        <button className="btn btn-outline btn-sm" onClick={onNew}>
           <span style={{ fontSize: 14, lineHeight: 1 }}>+</span> New
         </button>
         <AccentMenu />
@@ -434,29 +371,17 @@ function Home({ decisions, onOpen, onNew, loading }) {
   return (
     <div>
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 28px 64px' }}>
-        <div style={{
-          position: 'relative', overflow: 'hidden', marginBottom: 36,
-          borderRadius: 18, padding: '40px 40px 44px',
-          background: 'linear-gradient(135deg, var(--ink-deep), var(--ink))',
-          color: '#fff', boxShadow: 'var(--shadow-lg)',
-        }}>
-          {/* colored glow accents */}
-          <div style={{ position: 'absolute', top: -120, right: -60, width: 360, height: 360, borderRadius: '50%', background: 'radial-gradient(circle, oklch(0.6 0.18 150 / 0.55), transparent 70%)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', bottom: -160, left: 120, width: 380, height: 380, borderRadius: '50%', background: 'radial-gradient(circle, oklch(0.55 0.18 285 / 0.4), transparent 70%)', pointerEvents: 'none' }} />
-          {/* giant watermark sigma */}
-          <div style={{ position: 'absolute', right: 24, top: -30, fontSize: 260, fontWeight: 700, lineHeight: 1, color: 'rgba(255,255,255,0.05)', fontFamily: 'Geist, sans-serif', pointerEvents: 'none', userSelect: 'none' }}>Σ</div>
-          <div style={{ position: 'relative' }}>
-            <span className="label" style={{ color: 'rgba(255,255,255,0.6)' }}>{loading ? 'loading…' : `${open.length} open · ${closed.length} closed`} · {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-            <h1 style={{ fontSize: 'clamp(32px, 4.5vw, 54px)', fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 0', lineHeight: 1.04, maxWidth: 720 }}>
-              {loading ? (
-                <span>Picking up where you left off…</span>
-              ) : open.length === 0 ? (
-                <>No questions on your desk. <span style={{ background: 'linear-gradient(120deg, oklch(0.85 0.13 150), oklch(0.82 0.13 285))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>Open a new one when something is weighing on you.</span></>
-              ) : (
-                <>{open.length} {open.length === 1 ? 'question' : 'questions'} on your desk. <span style={{ background: 'linear-gradient(120deg, oklch(0.85 0.13 150), oklch(0.82 0.13 285))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>Make one a little less heavy today.</span></>
-              )}
-            </h1>
-          </div>
+        <div style={{ marginBottom: 36 }}>
+          <span className="label">{loading ? 'loading…' : `${open.length} open · ${closed.length} closed`} · {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+          <h1 style={{ fontSize: 'clamp(32px, 4.5vw, 52px)', fontWeight: 500, letterSpacing: '-0.02em', margin: '12px 0 0', lineHeight: 1.05, maxWidth: 760 }}>
+            {loading ? (
+              <span>Picking up where you left off…</span>
+            ) : open.length === 0 ? (
+              <>No questions on your desk. <span style={{ color: 'var(--ink-faint)' }}>Open a new one when something is weighing on you.</span></>
+            ) : (
+              <>{open.length} {open.length === 1 ? 'question' : 'questions'} on your desk. <span style={{ color: 'var(--ink-faint)' }}>Make one of them a little less heavy today.</span></>
+            )}
+          </h1>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
           <span className="label">open</span>
@@ -464,7 +389,7 @@ function Home({ decisions, onOpen, onNew, loading }) {
             <span style={{ fontSize: 15, lineHeight: 1 }}>+</span> New decision
           </button>
         </div>
-        <div className="card" style={{ overflow: 'hidden' }}>
+        <div style={{ border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '36px 2.6fr 1.7fr 1.4fr 70px', gap: 16, padding: '11px 18px', background: 'var(--bg-soft)', borderBottom: '1px solid var(--rule)' }}>
             <span className="label">#</span><span className="label">question</span><span className="label">leading</span><span className="label">progress</span><span className="label" style={{ textAlign: 'right' }}>age</span>
           </div>
@@ -490,16 +415,13 @@ function Home({ decisions, onOpen, onNew, loading }) {
         {closed.length > 0 && (
           <div style={{ marginTop: 40 }}>
             <span className="label">recently closed</span>
-            <div className="card" style={{ marginTop: 12, overflow: 'hidden', background: 'var(--bg-soft)' }}>
+            <div style={{ marginTop: 12, border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden', background: 'var(--bg-soft)' }}>
               {closed.map(d => (
                 <div key={d.id} onClick={() => onOpen(d.id)} style={{ display: 'grid', gridTemplateColumns: '36px 2.6fr 1.7fr 1.4fr 70px', gap: 16, alignItems: 'center', padding: '14px 18px', opacity: 0.75, borderBottom: '1px solid var(--rule-soft)', cursor: 'pointer' }}>
                   <span className="mono" style={{ fontSize: 11, color: 'var(--ink-faint)' }}>—</span>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <div style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 8, background: kindSoft(d.type), border: `1px solid ${kindColor(d.type)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{kindEmoji(d.type)}</div>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 500 }}>{d.title || <em style={{ color: 'var(--ink-faint)' }}>untitled</em>}</div>
-                      <span className="label" style={{ marginTop: 3, display: 'block' }}>{d.type || 'custom'} · closed</span>
-                    </div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 500 }}>{d.title || <em style={{ color: 'var(--ink-faint)' }}>untitled</em>}</div>
+                    <span className="label" style={{ marginTop: 3, display: 'block' }}>{d.type || 'custom'} · closed</span>
                   </div>
                   <span className="label">picked</span>
                   <span className="label">complete</span>
@@ -523,25 +445,17 @@ function HomeRow({ d, idx, onClick }) {
   const c = completeness(d._parameters, d._options, d._scores)
   const daysOpen = Math.max(1, Math.floor((Date.now() - new Date(d.created_at).getTime()) / 86400000))
   const statusLabel = c.pct >= 0.7 ? 'ready to choose' : c.pct >= 0.35 ? 'still gathering' : 'just started'
-  const kc = kindColor(d.type)
-  const statusColor = c.pct >= 0.7 ? 'var(--accent)' : c.pct >= 0.35 ? 'var(--warn)' : 'var(--ink-ghost)'
   return (
     <div onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{ display: 'grid', gridTemplateColumns: '36px 2.6fr 1.7fr 1.4fr 70px', gap: 16, alignItems: 'center', padding: '18px 18px', borderBottom: '1px solid var(--rule-soft)', cursor: 'pointer', background: hover ? kindSoft(d.type) : 'transparent', boxShadow: hover ? `inset 3px 0 0 ${kc}` : 'inset 0 0 0 transparent', transition: 'background 140ms, box-shadow 140ms' }}>
-      <span className="mono" style={{ fontSize: 12, color: kc }}>{String(idx).padStart(2, '0')}</span>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-        <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, background: kindSoft(d.type), border: `1px solid ${kc}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, marginTop: 1 }}>{kindEmoji(d.type)}</div>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 15, fontWeight: 500 }}>{d.title?.trim() || <em style={{ color: 'var(--ink-faint)' }}>untitled question</em>}</span>
-            {gap != null && gap < 0.6 && <Pill color="var(--neg)">tight</Pill>}
-            {c.pct === 0 && <Pill color="var(--ink-faint)">empty</Pill>}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
-            <Pill color={kc}>{d.type || 'custom'}</Pill>
-            <span className="label">{d._parameters.length}p × {d._options.length}o</span>
-          </div>
+      style={{ display: 'grid', gridTemplateColumns: '36px 2.6fr 1.7fr 1.4fr 70px', gap: 16, alignItems: 'center', padding: '18px 18px', borderBottom: '1px solid var(--rule-soft)', cursor: 'pointer', background: hover ? 'var(--bg-soft)' : 'transparent', transition: 'background 120ms' }}>
+      <span className="mono" style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{String(idx).padStart(2, '0')}</span>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 15, fontWeight: 500 }}>{d.title?.trim() || <em style={{ color: 'var(--ink-faint)' }}>untitled question</em>}</span>
+          {gap != null && gap < 0.6 && <Pill color="var(--neg)">tight</Pill>}
+          {c.pct === 0 && <Pill color="var(--ink-faint)">empty</Pill>}
         </div>
+        <span className="label" style={{ marginTop: 4, display: 'block' }}>{d.type || 'custom'} · {d._parameters.length}p × {d._options.length}o</span>
       </div>
       {leading ? (
         <div>
@@ -554,12 +468,12 @@ function HomeRow({ d, idx, onClick }) {
       ) : (<span className="label">no scores yet</span>)}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ flex: 1, height: 5, background: 'var(--rule-soft)', borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{ width: `${c.pct * 100}%`, height: '100%', background: statusColor, transition: 'width 300ms, background 200ms' }} />
+          <div style={{ flex: 1, height: 4, background: 'var(--rule-soft)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ width: `${c.pct * 100}%`, height: '100%', background: c.pct >= 0.7 ? 'var(--accent)' : 'var(--ink)', transition: 'width 300ms' }} />
           </div>
           <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', minWidth: 32, textAlign: 'right' }}>{Math.round(c.pct * 100)}%</span>
         </div>
-        <span className="label" style={{ marginTop: 6, display: 'block', color: statusColor }}>{statusLabel}</span>
+        <span className="label" style={{ marginTop: 6, display: 'block' }}>{statusLabel}</span>
       </div>
       <span className="mono" style={{ fontSize: 11, color: 'var(--ink-faint)', textAlign: 'right' }}>{daysOpen}d</span>
     </div>
@@ -584,21 +498,15 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
   const paramHues = [145, 30, 260, 75, 320, 200, 60, 290, 175, 240]
   const paramColors = {}
   data.parameters.forEach((pp, i) => { paramColors[pp.id] = `oklch(0.62 0.13 ${paramHues[i % paramHues.length]})` })
-  const optColors = {}
-  data.options.forEach((o, i) => { optColors[o.id] = optionColor(i) })
 
   const maxContrib = Math.max(1, ...data.options.map(o =>
     data.parameters.reduce((s, p) => s + paramContribution(o.id, p.id, data.scores, data.parameters, overrides), 0)
   ))
 
-  const kh = kindHue(decision.type)
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: `radial-gradient(1100px 460px at 50% -120px, oklch(0.93 0.06 ${kh} / 0.7), transparent 65%), linear-gradient(180deg, oklch(0.96 0.03 ${kh} / 0.45), transparent 340px)`,
-    }}>
+    <div>
       {/* WEIGHT STRIP */}
-      <div style={{ background: isWhatIf ? 'var(--hi-soft)' : `oklch(0.95 0.035 ${kh})`, borderBottom: `1px solid ${isWhatIf ? 'var(--hi)' : `oklch(0.88 0.05 ${kh})`}`, padding: '14px 28px', transition: 'background 200ms' }}>
+      <div style={{ background: isWhatIf ? 'var(--hi-soft)' : 'var(--bg-inset)', borderBottom: `1px solid ${isWhatIf ? 'var(--hi)' : 'var(--rule)'}`, padding: '14px 28px', transition: 'background 200ms' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 18, alignItems: 'center' }}>
           <div style={{ minWidth: 90 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -621,7 +529,7 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
                       <span style={{ fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pp.name}</span>
                       <span className="mono" style={{ fontSize: 11, color: over ? 'var(--hi)' : 'var(--ink-soft)' }}>{cur.toFixed(0)}</span>
                     </div>
-                    <WeightSlider value={cur} original={Number(pp.weight)} ghostMark={isWhatIf} hue={over ? 260 : paramHues[data.parameters.indexOf(pp) % paramHues.length]}
+                    <WeightSlider value={cur} original={Number(pp.weight)} ghostMark={isWhatIf} hue={over ? 260 : 240}
                       onChange={v => {
                         if (isWhatIf) setOverrides(prev => ({ ...prev, [pp.id]: v }))
                         else if (Math.abs(v - Number(pp.weight)) > 0.01) setOverrides({ [pp.id]: v })
@@ -648,16 +556,10 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 24 }}>
           <div style={{ flex: '1 1 320px' }}>
             <button className="btn btn-ghost btn-sm" onClick={onBack} style={{ marginLeft: -10, marginBottom: 4 }}>← all decisions</button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 52, height: 52, flexShrink: 0, borderRadius: 13, background: kindSoft(decision.type), border: `1px solid ${kindColor(decision.type)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, boxShadow: 'var(--shadow-sm)' }}>{kindEmoji(decision.type)}</div>
-              <h1 style={{ margin: 0, fontSize: 'clamp(24px, 3vw, 38px)', fontWeight: 500, letterSpacing: '-0.02em' }}>
-                <InlineText value={decision.title} onCommit={onTitleUpdate} placeholder="What are you deciding?" />
-              </h1>
-            </div>
-            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Pill color={kindColor(decision.type)}>{decision.type || 'custom'}</Pill>
-              <span className="label">started {new Date(decision.created_at).toLocaleDateString()}</span>
-            </div>
+            <h1 style={{ margin: 0, fontSize: 'clamp(24px, 3vw, 38px)', fontWeight: 500, letterSpacing: '-0.02em' }}>
+              <InlineText value={decision.title} onCommit={onTitleUpdate} placeholder="What are you deciding?" />
+            </h1>
+            <div style={{ marginTop: 6 }}><span className="label">started {new Date(decision.created_at).toLocaleDateString()}</span></div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-outline btn-sm" onClick={() => onOpenMode('blind')}>Blind score mode</button>
@@ -683,14 +585,16 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
           {data.options.length === 0 && data.parameters.length === 0 ? (
             <EmptyState onAddParam={paramHandlers.onAdd} onAddOption={optionHandlers.onAdd} />
           ) : (
-            <div className="card" style={{ overflow: 'hidden' }}>
-              <StandingsList
-                ranked={ranked} baseline={baseline}
-                parameters={data.parameters} scores={data.scores}
-                paramColors={paramColors} optColors={optColors} maxContrib={maxContrib} overrides={overrides}
-                highlight={highlight} onHighlight={setHighlight} isWhatIf={isWhatIf}
-                optionHandlers={optionHandlers}
-              />
+            <div style={{ border: '1px solid var(--rule)', background: 'var(--bg)', borderRadius: 8, overflow: 'hidden' }}>
+              {ranked.map((o, i) => (
+                <LeaderRow key={o.id} option={o} rank={i} parameters={data.parameters} scores={data.scores}
+                  paramColors={paramColors} maxContrib={maxContrib} overrides={overrides}
+                  highlight={highlight} onHighlight={setHighlight}
+                  baselineRank={baseline.findIndex(x => x.id === o.id)} isWhatIf={isWhatIf}
+                  onRename={v => optionHandlers.onUpdate(o.id, { name: v })}
+                  onDelete={() => optionHandlers.onDelete(o.id)}
+                />
+              ))}
               <AddOptionRow onAdd={optionHandlers.onAdd} />
               <Legend parameters={data.parameters} paramColors={paramColors} highlight={highlight} onHighlight={setHighlight} overrides={overrides} />
             </div>
@@ -704,9 +608,9 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
               <span className="label">matrix · click a cell to edit</span>
               <span className="label">{c.total - c.filled} empty</span>
             </div>
-            <div className="card" style={{ overflow: 'auto' }}>
+            <div style={{ border: '1px solid var(--rule)', borderRadius: 8, background: 'var(--bg)', overflow: 'auto' }}>
               <Matrix parameters={data.parameters} options={data.options} scores={data.scores}
-                paramColors={paramColors} optColors={optColors} highlight={highlight} setHighlight={setHighlight}
+                paramColors={paramColors} highlight={highlight} setHighlight={setHighlight}
                 onScoreUpdate={onScoreUpdate} paramHandlers={paramHandlers} optionHandlers={optionHandlers}
               />
             </div>
@@ -738,35 +642,8 @@ function EmptyState({ onAddParam, onAddOption }) {
   )
 }
 
-// ── animation helpers ──────────────────────────────────────────────────────
-// (Score totals update instantly with a color transition; bar widths animate
-//  via CSS. We deliberately avoid requestAnimationFrame count-ups, which
-//  freeze in background tabs.)
-
-// FLIP list — rows reorder instantly via React reconciliation; the bar-width
-// transitions and a short rank-change pulse carry the motion.
-function StandingsList({ ranked, baseline, optionHandlers, optColors, ...shared }) {
-  return ranked.map((o, i) => (
-    <LeaderRow key={o.id} option={o} rank={i} baselineRank={baseline.findIndex(x => x.id === o.id)}
-      optColor={optColors[o.id]}
-      onRename={v => optionHandlers.onUpdate(o.id, { name: v })}
-      onDelete={() => optionHandlers.onDelete(o.id)}
-      {...shared} />
-  ))
-}
-
-function LeaderRow({ option, rank, parameters, scores, paramColors, optColor, maxContrib, overrides, highlight, onHighlight, baselineRank, isWhatIf, onRename, onDelete }) {
+function LeaderRow({ option, rank, parameters, scores, paramColors, maxContrib, overrides, highlight, onHighlight, baselineRank, isWhatIf, onRename, onDelete }) {
   const [hover, setHover] = useState(false)
-  const [pulse, setPulse] = useState(false)
-  const prevRank = useRef(rank)
-  useEffect(() => {
-    if (prevRank.current !== rank) {
-      setPulse(true)
-      prevRank.current = rank
-      const t = setTimeout(() => setPulse(false), 700)
-      return () => clearTimeout(t)
-    }
-  }, [rank])
   const isTop = rank === 0
   const shift = baselineRank - rank
   const parts = parameters.map(p => ({ p, contrib: paramContribution(option.id, p.id, scores, parameters, overrides) }))
@@ -774,13 +651,10 @@ function LeaderRow({ option, rank, parameters, scores, paramColors, optColor, ma
   return (
     <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{ display: 'grid', gridTemplateColumns: '40px 1fr 100px 36px', gap: 16, alignItems: 'center', padding: '18px 22px', borderBottom: '1px solid var(--rule-soft)',
-        background: isTop ? (isWhatIf ? 'linear-gradient(90deg, var(--hi-soft), transparent 70%)' : 'linear-gradient(90deg, var(--accent-soft), transparent 70%)') : (hover ? 'var(--bg-soft)' : 'transparent'),
-        boxShadow: isTop ? `inset 4px 0 0 ${isWhatIf ? 'var(--hi)' : 'var(--accent)'}` : (pulse ? `inset 3px 0 0 ${optColor}` : 'inset 0 0 0 transparent'),
-        transition: 'background 150ms, box-shadow 500ms' }}>
+        background: isTop ? (isWhatIf ? 'var(--hi-soft)' : 'var(--accent-soft)') : (hover ? 'var(--bg-soft)' : 'transparent'), transition: 'background 150ms' }}>
       <span className="mono" style={{ fontSize: 22, fontWeight: 600, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent)') : 'var(--ink-faint)' }}>{String(rank + 1).padStart(2, '0')}</span>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
-          <span style={{ width: 9, height: 9, borderRadius: '50%', background: optColor, alignSelf: 'center', flexShrink: 0 }} />
           <span style={{ fontSize: 16, fontWeight: 500 }}>
             <InlineText value={option.name} onCommit={onRename} placeholder="option" style={{ fontSize: 16, fontWeight: 500 }} />
           </span>
@@ -799,7 +673,7 @@ function LeaderRow({ option, rank, parameters, scores, paramColors, optColor, ma
         </div>
       </div>
       <div style={{ textAlign: 'right' }}>
-        <span className="mono" style={{ fontSize: 26, fontWeight: 500, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent)') : 'var(--ink)', transition: 'color 200ms' }}>
+        <span className="mono" style={{ fontSize: 26, fontWeight: 500, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent)') : 'var(--ink)' }}>
           {option._total != null ? option._total.toFixed(2) : '—'}
         </span>
         <div style={{ marginTop: 2 }}><span className="label">of 10</span></div>
@@ -848,7 +722,7 @@ function AddOptionRow({ onAdd }) {
 // =============================================================================
 // MATRIX
 // =============================================================================
-function Matrix({ parameters, options, scores, paramColors, optColors, highlight, setHighlight, onScoreUpdate, paramHandlers, optionHandlers }) {
+function Matrix({ parameters, options, scores, paramColors, highlight, setHighlight, onScoreUpdate, paramHandlers, optionHandlers }) {
   const [addParamDraft, setAddParamDraft] = useState('')
   return (
     <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 720 }}>
@@ -856,10 +730,9 @@ function Matrix({ parameters, options, scores, paramColors, optColors, highlight
         <tr style={{ background: 'var(--bg-soft)', borderBottom: '1px solid var(--rule)' }}>
           <th style={{ padding: '12px 18px', textAlign: 'left', minWidth: 200, position: 'sticky', left: 0, background: 'var(--bg-soft)', zIndex: 2 }}><span className="label">consideration</span></th>
           <th style={{ padding: '12px 12px', textAlign: 'left', width: 60 }}><span className="label">w</span></th>
-          {options.map((o, oi) => (
-            <th key={o.id} style={{ padding: '12px 12px', textAlign: 'left', minWidth: 160, borderTop: `2px solid ${optColors[o.id]}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 500 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: optColors[o.id], flexShrink: 0 }} />
+          {options.map(o => (
+            <th key={o.id} style={{ padding: '12px 12px', textAlign: 'left', minWidth: 160 }}>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>
                 <InlineText value={o.name} onCommit={v => optionHandlers.onUpdate(o.id, { name: v })} placeholder="option" style={{ fontSize: 13, fontWeight: 500 }} />
               </div>
             </th>
@@ -1136,11 +1009,29 @@ Be direct, not soft. No preamble, no recap, no "great question". Use plain text,
     </div>
   )
 }
-// Raw value on top, draggable slider for the rating, AI cross-check below.
-function Cell({ param, option, score, onUpdate, allOptions, allScores, parameters }) {
+// Raw value on top (text / number / categorical, per input_type),
+// score number + visual bar below. No click-to-edit step.
+function Cell({ param, option, score, onUpdate }) {
+  const [scoreDraft, setScoreDraft] = useState(score?.value ?? '')
+  useEffect(() => { setScoreDraft(score?.value ?? '') }, [score?.value])
+
+  const commitScore = () => {
+    if (scoreDraft === '' || scoreDraft === null) {
+      if (score?.value != null) onUpdate({ value: null })
+      return
+    }
+    const num = parseFloat(scoreDraft)
+    if (isNaN(num)) { setScoreDraft(score?.value ?? ''); return }
+    const clamped = Math.max(0, Math.min(10, num))
+    if (clamped !== score?.value) onUpdate({ value: clamped })
+  }
+
+  const pct = score?.value != null ? Math.max(0, Math.min(100, (Number(score.value) / 10) * 100)) : 0
+
   return (
-    <td style={{ padding: '10px 12px', minWidth: 210, verticalAlign: 'top' }}>
+    <td style={{ padding: '10px 12px', minWidth: 160, verticalAlign: 'top' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* raw value (typed input) */}
         <RawInput
           value={score?.notes}
           unit={param.unit}
@@ -1148,22 +1039,33 @@ function Cell({ param, option, score, onUpdate, allOptions, allScores, parameter
           options={param.options}
           onChange={v => onUpdate({ notes: v })}
         />
-        <ScoreSlider
-          value={score?.value != null ? Number(score.value) : null}
-          onChange={v => onUpdate({ value: v })}
-        />
-        {score?.value != null && (
-          <div>
-            <CrossCheck
-              param={param}
-              option={option}
-              score={score}
-              allOptions={allOptions}
-              allScores={allScores}
-              parameters={parameters}
-            />
+
+        {/* score number + bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="number" min="0" max="10" step="0.5"
+            value={scoreDraft}
+            onChange={e => setScoreDraft(e.target.value)}
+            onBlur={commitScore}
+            onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
+            placeholder="—"
+            className="mono"
+            style={{
+              width: 44, fontSize: 13, textAlign: 'right',
+              border: '1px solid var(--rule)', borderRadius: 4, padding: '3px 6px',
+              color: 'var(--accent)', flexShrink: 0,
+            }}
+          />
+          <div style={{ flex: 1, position: 'relative', height: 1, background: 'var(--rule)' }}>
+            {score?.value != null && (
+              <div style={{
+                position: 'absolute', left: 0, top: 0, height: 1,
+                width: `${pct}%`, background: 'var(--accent)',
+                transition: 'width 200ms',
+              }} />
+            )}
           </div>
-        )}
+        </div>
       </div>
     </td>
   )
@@ -1503,8 +1405,8 @@ function App() {
     <div style={{ minHeight: '100vh' }}>
       <TopHeader
         middle={selectedDecision
-          ? <span className="label" style={{ color: 'rgba(255,255,255,0.75)' }}>{kindEmoji(selectedDecision.type)} {selectedDecision.type || 'custom'} · {completeness(decisionData.parameters, decisionData.options, decisionData.scores).filled}/{completeness(decisionData.parameters, decisionData.options, decisionData.scores).total} considered</span>
-          : <span className="label" style={{ color: 'rgba(255,255,255,0.55)' }}>HOME</span>
+          ? <span className="label">{selectedDecision.type || 'custom'} · {completeness(decisionData.parameters, decisionData.options, decisionData.scores).filled}/{completeness(decisionData.parameters, decisionData.options, decisionData.scores).total} considered</span>
+          : <span className="label">HOME</span>
         }
         onHome={goHome}
         onNew={createDecision}
