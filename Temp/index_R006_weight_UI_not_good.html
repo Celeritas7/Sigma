@@ -566,144 +566,6 @@ function HomeRow({ d, idx, onClick }) {
   )
 }
 
-// ── Weight editor: roomy panel with steppers + sliders + full labels ────────
-function WeightStep({ value, onChange, color }) {
-  const set = d => onChange(Math.max(0, Math.min(10, Math.round((value + d) * 2) / 2)))
-  const btn = { width: 26, height: 26, borderRadius: 7, border: '1px solid var(--rule)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, lineHeight: 1, color: 'var(--ink)', boxShadow: 'var(--shadow-sm)' }
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-      <button style={btn} onClick={() => set(-1)} title="−1">−</button>
-      <span className="mono" style={{ minWidth: 22, textAlign: 'center', fontSize: 16, fontWeight: 600, color }}>{value.toFixed(0)}</span>
-      <button style={btn} onClick={() => set(1)} title="+1">+</button>
-    </div>
-  )
-}
-
-function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHues, highlight, setHighlight, isWhatIf, kh, onReset, onSave }) {
-  const [open, setOpen] = useState(true)
-  const [view, setView] = useState('tiers') // 'tiers' | 'fine'
-  const [dragId, setDragId] = useState(null)
-  const [overLane, setOverLane] = useState(null)
-  const setW = (pp, v) => {
-    if (isWhatIf || Math.abs(v - Number(pp.weight)) > 0.01) {
-      setOverrides(prev => ({ ...(prev || {}), [pp.id]: v }))
-    }
-  }
-  const TIERS = [
-    { key: 'must',  label: 'Must-have',      value: 10, hue: 145 },
-    { key: 'imp',   label: 'Important',      value: 8,  hue: 75 },
-    { key: 'nice',  label: 'Nice to have',   value: 5,  hue: 235 },
-    { key: 'minor', label: 'Minor',          value: 2,  hue: 25 },
-    { key: 'skip',  label: "Doesn't matter", value: 0,  hue: 285 },
-  ]
-  const tierOf = w => TIERS.reduce((best, t) => Math.abs(w - t.value) < Math.abs(w - best.value) ? t : best, TIERS[0])
-  const curW = pp => overrides?.[pp.id] ?? Number(pp.weight)
-  const isOver = pp => overrides?.[pp.id] != null && Math.abs(overrides[pp.id] - Number(pp.weight)) > 0.01
-  return (
-    <div style={{ background: isWhatIf ? 'var(--hi-soft)' : `oklch(0.96 0.03 ${kh})`, borderBottom: `1px solid ${isWhatIf ? 'var(--hi)' : `oklch(0.88 0.05 ${kh})`}`, transition: 'background 200ms' }}>
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '12px 28px' }}>
-        {/* header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span className="label" style={isWhatIf ? { color: 'var(--hi)' } : undefined}>weights — what matters most?</span>
-            {isWhatIf && <Pill color="var(--hi)">unsaved</Pill>}
-            <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>{open ? (view === 'tiers' ? 'drag each onto a priority lane' : 'tap −/+ or drag the slider') : 'higher = matters more'}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {isWhatIf && <button className="btn btn-outline btn-sm" onClick={onReset}>Reset</button>}
-            {isWhatIf && <button className="btn btn-accent btn-sm" onClick={onSave}>Save weights</button>}
-            {open && parameters.length > 0 && (
-              <div style={{ display: 'flex', gap: 2, padding: 2, background: 'var(--bg-inset)', borderRadius: 8, marginRight: 2 }}>
-                {[{ id: 'tiers', label: '⠿ Tiers' }, { id: 'fine', label: '⊹ Fine' }].map(s => (
-                  <button key={s.id} onClick={() => setView(s.id)}
-                    style={{ padding: '5px 11px', fontSize: 12, fontWeight: 500, borderRadius: 6, border: 'none', background: view === s.id ? 'var(--bg)' : 'transparent', color: view === s.id ? 'var(--ink)' : 'var(--ink-soft)', boxShadow: view === s.id ? 'var(--shadow-sm)' : 'none' }}>{s.label}</button>
-                ))}
-              </div>
-            )}
-            <button className="btn btn-ghost btn-sm" onClick={() => setOpen(o => !o)}>{open ? 'Collapse ▴' : 'Adjust ▾'}</button>
-          </div>
-        </div>
-
-        {/* body */}
-        {parameters.length === 0 ? (
-          <div style={{ padding: '8px 0' }}><span className="label">add a parameter to start weighting</span></div>
-        ) : !open ? (
-          <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {parameters.map(pp => {
-              const c = paramColors[pp.id]
-              return (
-                <div key={pp.id} title={pp.name} onMouseEnter={() => setHighlight(pp.id)} onMouseLeave={() => setHighlight(null)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 11px', borderRadius: 999, background: 'var(--bg)', border: `1px solid ${highlight === pp.id ? c : 'var(--rule)'}` }}>
-                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: c }} />
-                  <span style={{ fontSize: 12, maxWidth: 150, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pp.name}</span>
-                  <span className="mono" style={{ fontSize: 12, fontWeight: 600, color: isOver(pp) ? 'var(--hi)' : 'var(--ink)' }}>{curW(pp).toFixed(0)}</span>
-                </div>
-              )
-            })}
-          </div>
-        ) : view === 'fine' ? (
-          <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
-            {parameters.map((pp, i) => {
-              const cur = curW(pp); const over = isOver(pp); const c = paramColors[pp.id]
-              return (
-                <div key={pp.id} onMouseEnter={() => setHighlight(pp.id)} onMouseLeave={() => setHighlight(null)}
-                  style={{ padding: '10px 13px', borderRadius: 11, border: `1px solid ${highlight === pp.id ? c : 'var(--rule)'}`, background: 'var(--bg)', boxShadow: highlight === pp.id ? 'var(--shadow-sm)' : 'none', transition: 'border-color 150ms, box-shadow 150ms' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
-                    <span style={{ width: 10, height: 10, borderRadius: 3, background: c, flexShrink: 0 }} />
-                    <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.25 }}>{pp.name}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <WeightStep value={cur} color={over ? 'var(--hi)' : c} onChange={v => setW(pp, v)} />
-                    <div style={{ flex: 1 }}>
-                      <WeightSlider value={cur} original={Number(pp.weight)} ghostMark={isWhatIf} hue={over ? 260 : paramHues[i % paramHues.length]} onChange={v => setW(pp, v)} />
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {TIERS.map(t => {
-              const chips = parameters.filter(pp => tierOf(curW(pp)).key === t.key)
-              const active = overLane === t.key
-              return (
-                <div key={t.key}
-                  onDragOver={e => { e.preventDefault(); if (overLane !== t.key) setOverLane(t.key) }}
-                  onDragLeave={() => setOverLane(l => l === t.key ? null : l)}
-                  onDrop={e => { e.preventDefault(); const id = dragId || e.dataTransfer.getData('text/plain'); const pp = parameters.find(p => p.id === id); if (pp) setW(pp, t.value); setDragId(null); setOverLane(null) }}
-                  style={{ display: 'grid', gridTemplateColumns: '152px 1fr', alignItems: 'stretch', border: `1px solid ${active ? `oklch(0.6 0.15 ${t.hue})` : 'var(--rule)'}`, borderRadius: 11, background: active ? `oklch(0.975 0.04 ${t.hue})` : 'var(--bg)', transition: 'border-color 120ms, background 120ms', minHeight: 52, overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, padding: '10px 14px', borderRight: '1px solid var(--rule-soft)', background: `oklch(0.97 0.055 ${t.hue})` }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: `oklch(0.42 0.13 ${t.hue})` }}>{t.label}</span>
-                    <span className="label" style={{ color: `oklch(0.52 0.1 ${t.hue})` }}>weight {t.value}</span>
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, alignItems: 'center', padding: '8px 12px' }}>
-                    {chips.length === 0 && <span className="label" style={{ opacity: 0.45 }}>{active ? 'release to drop' : 'drop here'}</span>}
-                    {chips.map(pp => {
-                      const c = paramColors[pp.id]; const over = isOver(pp)
-                      return (
-                        <div key={pp.id} draggable
-                          onDragStart={e => { setDragId(pp.id); e.dataTransfer.setData('text/plain', pp.id); e.dataTransfer.effectAllowed = 'move' }}
-                          onDragEnd={() => { setDragId(null); setOverLane(null) }}
-                          onMouseEnter={() => setHighlight(pp.id)} onMouseLeave={() => setHighlight(null)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 9, background: 'var(--bg)', border: `1px solid ${over ? 'var(--hi)' : (highlight === pp.id ? c : 'var(--rule)')}`, boxShadow: 'var(--shadow-sm)', cursor: 'grab', opacity: dragId === pp.id ? 0.35 : 1, transition: 'opacity 120ms' }}>
-                          <span style={{ width: 9, height: 9, borderRadius: 3, background: c, flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, fontWeight: 500 }}>{pp.name}</span>
-                          <span style={{ fontSize: 13, color: 'var(--ink-ghost)', letterSpacing: '-2px', marginLeft: 2 }}>⠿</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 // =============================================================================
 // DECISION VIEW
 // =============================================================================
@@ -735,19 +597,51 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
       minHeight: '100vh',
       background: `radial-gradient(1100px 460px at 50% -120px, oklch(0.93 0.06 ${kh} / 0.7), transparent 65%), linear-gradient(180deg, oklch(0.96 0.03 ${kh} / 0.45), transparent 340px)`,
     }}>
-      {/* WEIGHT PANEL */}
-      <WeightPanel
-        parameters={data.parameters}
-        overrides={overrides} setOverrides={setOverrides}
-        paramColors={paramColors} paramHues={paramHues}
-        highlight={highlight} setHighlight={setHighlight}
-        isWhatIf={isWhatIf} kh={kh}
-        onReset={() => setOverrides(null)}
-        onSave={async () => {
-          for (const [pid, w] of Object.entries(overrides)) await paramHandlers.onUpdate(pid, { weight: w })
-          setOverrides(null)
-        }}
-      />
+      {/* WEIGHT STRIP */}
+      <div style={{ background: isWhatIf ? 'var(--hi-soft)' : `oklch(0.95 0.035 ${kh})`, borderBottom: `1px solid ${isWhatIf ? 'var(--hi)' : `oklch(0.88 0.05 ${kh})`}`, padding: '14px 28px', transition: 'background 200ms' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 18, alignItems: 'center' }}>
+          <div style={{ minWidth: 90 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="label" style={isWhatIf ? { color: 'var(--hi)' } : undefined}>weights</span>
+              {isWhatIf && <Pill color="var(--hi)">what-if</Pill>}
+            </div>
+            <div style={{ marginTop: 3, fontSize: 11, color: 'var(--ink-soft)' }}>{isWhatIf ? 'temporary' : 'drag to rebalance'}</div>
+          </div>
+          {data.parameters.length === 0 ? (
+            <span className="label" style={{ paddingLeft: 12 }}>add a parameter to start weighting</span>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${data.parameters.length}, minmax(0, 1fr))`, gap: 14 }}>
+              {data.parameters.map(pp => {
+                const cur = overrides?.[pp.id] ?? Number(pp.weight)
+                const over = overrides?.[pp.id] != null && Math.abs(overrides[pp.id] - Number(pp.weight)) > 0.01
+                return (
+                  <div key={pp.id} onMouseEnter={() => setHighlight(pp.id)} onMouseLeave={() => setHighlight(null)}
+                    style={{ padding: '6px 8px 8px', borderRadius: 5, background: highlight === pp.id ? 'var(--bg)' : 'transparent', transition: 'background 150ms' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 }}>
+                      <span style={{ fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pp.name}</span>
+                      <span className="mono" style={{ fontSize: 11, color: over ? 'var(--hi)' : 'var(--ink-soft)' }}>{cur.toFixed(0)}</span>
+                    </div>
+                    <WeightSlider value={cur} original={Number(pp.weight)} ghostMark={isWhatIf} hue={over ? 260 : paramHues[data.parameters.indexOf(pp) % paramHues.length]}
+                      onChange={v => {
+                        if (isWhatIf) setOverrides(prev => ({ ...prev, [pp.id]: v }))
+                        else if (Math.abs(v - Number(pp.weight)) > 0.01) setOverrides({ [pp.id]: v })
+                      }}
+                    />
+                    <div style={{ marginTop: 4, height: 2, borderRadius: 1, background: paramColors[pp.id], opacity: 0.6 }} />
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {isWhatIf && <button className="btn btn-outline btn-sm" onClick={() => setOverrides(null)}>Reset</button>}
+            {isWhatIf && <button className="btn btn-primary btn-sm" onClick={async () => {
+              for (const [pid, w] of Object.entries(overrides)) await paramHandlers.onUpdate(pid, { weight: w })
+              setOverrides(null)
+            }}>Save as weights</button>}
+          </div>
+        </div>
+      </div>
 
       <main style={{ maxWidth: 1280, margin: '0 auto', padding: '28px 28px 80px' }}>
         {/* title + actions */}
