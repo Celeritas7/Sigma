@@ -400,9 +400,16 @@ function TopHeader({ middle, onHome, onNew }) {
 
 function AccentMenu() {
   const [open, setOpen] = useState(false)
+  const rootRef = useRef(null)
   const cur = localStorage.getItem('sigma_accent') || 'green'
+  useEffect(() => {
+    if (!open) return
+    const h = e => { if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('pointerdown', h)
+    return () => document.removeEventListener('pointerdown', h)
+  }, [open])
   return (
-    <div style={{ position: 'relative' }}>
+    <div ref={rootRef} style={{ position: 'relative' }}>
       <button onClick={() => setOpen(o => !o)} className="iconbtn" title="theme">
         <span style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--accent)' }} />
       </button>
@@ -428,7 +435,7 @@ function AccentMenu() {
 // =============================================================================
 // HOME
 // =============================================================================
-function Home({ decisions, onOpen, onNew, loading }) {
+function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, onDelete, onReopen }) {
   const open = decisions.filter(d => d.status !== 'closed' && d.status !== 'archived')
   const closed = decisions.filter(d => d.status === 'closed')
   return (
@@ -458,6 +465,12 @@ function Home({ decisions, onOpen, onNew, loading }) {
             </h1>
           </div>
         </div>
+        {loadError && (
+          <div style={{ marginBottom: 20, padding: '12px 16px', border: '1px solid var(--neg)', background: 'var(--neg-soft)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, color: 'var(--neg)' }}>Couldn't load decisions: {loadError}</span>
+            <button className="btn btn-outline btn-sm" onClick={onRetry}>Retry</button>
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
           <span className="label">open</span>
           <button className="btn btn-primary" onClick={onNew}>
@@ -484,7 +497,7 @@ function Home({ decisions, onOpen, onNew, loading }) {
               </button>
             </div>
           ) : (
-            open.map((d, i) => <HomeRow key={d.id} d={d} idx={i + 1} onClick={() => onOpen(d.id)} />)
+            open.map((d, i) => <HomeRow key={d.id} d={d} idx={i + 1} onClick={() => onOpen(d.id)} onDelete={() => onDelete(d.id)} />)
           )}
         </div>
         {closed.length > 0 && (
@@ -503,7 +516,7 @@ function Home({ decisions, onOpen, onNew, loading }) {
                   </div>
                   <span className="label">picked</span>
                   <span className="label">complete</span>
-                  <span />
+                  <button className="btn btn-ghost btn-sm" onClick={e => { e.stopPropagation(); onReopen(d.id) }} style={{ justifySelf: 'end' }}>Reopen</button>
                 </div>
               ))}
             </div>
@@ -514,7 +527,7 @@ function Home({ decisions, onOpen, onNew, loading }) {
   )
 }
 
-function HomeRow({ d, idx, onClick }) {
+function HomeRow({ d, idx, onClick, onDelete }) {
   const [hover, setHover] = useState(false)
   const ranked = rankedOptions(d._options, d._scores, d._parameters)
   const leading = ranked[0] && ranked[0]._total != null ? ranked[0] : null
@@ -561,7 +574,11 @@ function HomeRow({ d, idx, onClick }) {
         </div>
         <span className="label" style={{ marginTop: 6, display: 'block', color: statusColor }}>{statusLabel}</span>
       </div>
-      <span className="mono" style={{ fontSize: 11, color: 'var(--ink-faint)', textAlign: 'right' }}>{daysOpen}d</span>
+      <span className="mono" style={{ fontSize: 11, color: 'var(--ink-faint)', textAlign: 'right' }}>
+        {hover
+          ? <button className="iconbtn" title="archive decision" style={{ color: 'var(--neg)' }} onClick={e => { e.stopPropagation(); if (confirm(`Archive "${d.title || 'untitled'}"?`)) onDelete() }}>×</button>
+          : `${daysOpen}d`}
+      </span>
     </div>
   )
 }
@@ -585,9 +602,12 @@ function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHu
   const [dragId, setDragId] = useState(null)
   const [overLane, setOverLane] = useState(null)
   const setW = (pp, v) => {
-    if (isWhatIf || Math.abs(v - Number(pp.weight)) > 0.01) {
-      setOverrides(prev => ({ ...(prev || {}), [pp.id]: v }))
-    }
+    setOverrides(prev => {
+      const next = { ...(prev || {}) }
+      if (Math.abs(v - Number(pp.weight)) > 0.01) next[pp.id] = v
+      else delete next[pp.id]
+      return Object.keys(next).length ? next : null
+    })
   }
   const TIERS = [
     { key: 'must',  label: 'Must-have',      value: 10, hue: 145 },
@@ -707,7 +727,7 @@ function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHu
 // =============================================================================
 // DECISION VIEW
 // =============================================================================
-function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, optionHandlers, onScoreUpdate, onOpenMode }) {
+function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, optionHandlers, onScoreUpdate, onOpenMode, onStatusChange, onDelete }) {
   const [overrides, setOverrides] = useState(null)
   const [highlight, setHighlight] = useState(null)
 
@@ -728,6 +748,16 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
   const maxContrib = Math.max(1, ...data.options.map(o =>
     data.parameters.reduce((s, p) => s + paramContribution(o.id, p.id, data.scores, data.parameters, overrides), 0)
   ))
+
+  const onWeightEdit = (pid, w) => {
+    const v = Math.max(0, Math.min(10, w))
+    if (overrides?.[pid] != null) {
+      const next = { ...overrides }
+      delete next[pid]
+      setOverrides(Object.keys(next).length ? next : null)
+    }
+    paramHandlers.onUpdate(pid, { weight: v })
+  }
 
   const kh = kindHue(decision.type)
   return (
@@ -768,6 +798,10 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-outline btn-sm" onClick={() => onOpenMode('blind')}>Blind score mode</button>
             <button className="btn btn-outline btn-sm" onClick={() => onOpenMode('whatif')}>What-if</button>
+            {decision.status === 'closed'
+              ? <button className="btn btn-outline btn-sm" onClick={() => onStatusChange('active')}>Reopen</button>
+              : <button className="btn btn-accent btn-sm" onClick={async () => { await onStatusChange('closed'); onBack() }}>✓ Close decision</button>}
+            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--neg)' }} onClick={() => { if (confirm('Archive this decision? It disappears from Home but stays in the database.')) onDelete() }}>Archive</button>
           </div>
         </div>
 
@@ -814,6 +848,7 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
               <Matrix parameters={data.parameters} options={data.options} scores={data.scores}
                 paramColors={paramColors} optColors={optColors} highlight={highlight} setHighlight={setHighlight}
                 onScoreUpdate={onScoreUpdate} paramHandlers={paramHandlers} optionHandlers={optionHandlers}
+                onWeightEdit={onWeightEdit}
               />
             </div>
           </section>
@@ -954,7 +989,7 @@ function AddOptionRow({ onAdd }) {
 // =============================================================================
 // MATRIX
 // =============================================================================
-function Matrix({ parameters, options, scores, paramColors, optColors, highlight, setHighlight, onScoreUpdate, paramHandlers, optionHandlers }) {
+function Matrix({ parameters, options, scores, paramColors, optColors, highlight, setHighlight, onScoreUpdate, paramHandlers, optionHandlers, onWeightEdit }) {
   const [addParamDraft, setAddParamDraft] = useState('')
   return (
     <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 720 }}>
@@ -983,7 +1018,7 @@ function Matrix({ parameters, options, scores, paramColors, optColors, highlight
               </td>
               <td style={{ padding: '12px 12px' }}>
                 <input type="number" min="0" max="10" step="0.5" value={pp.weight}
-                  onChange={e => paramHandlers.onUpdate(pp.id, { weight: parseFloat(e.target.value) || 0 })}
+                  onChange={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) onWeightEdit(pp.id, n) }}
                   style={{ width: 48, fontFamily: 'Geist Mono, monospace', fontSize: 13, border: '1px solid var(--rule)', borderRadius: 4, padding: '3px 6px', color: 'var(--ink)' }} />
               </td>
               {options.map(o => (
@@ -1159,6 +1194,8 @@ function CrossCheck({ param, option, score, allOptions, allScores, parameters })
   const [loading, setLoading] = useState(false)
   const [response, setResponse] = useState('')
   const [error, setError] = useState(null)
+  const btnRef = useRef(null)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
 
   const ask = async () => {
     setLoading(true); setError(null); setResponse('')
@@ -1202,7 +1239,15 @@ Be direct, not soft. No preamble, no recap, no "great question". Use plain text,
 
   return (
     <div style={{ position: 'relative' }}>
-      <button onClick={() => { setOpen(o => !o); if (!response && !loading) ask() }}
+      <button ref={btnRef} onClick={() => {
+          const next = !open
+          if (next && btnRef.current) {
+            const r = btnRef.current.getBoundingClientRect()
+            setPos({ top: Math.min(r.bottom + 6, window.innerHeight - 320), left: Math.max(8, Math.min(r.left, window.innerWidth - 336)) })
+          }
+          setOpen(next)
+          if (next && !response && !loading) ask()
+        }}
         disabled={score?.value == null}
         title={score?.value == null ? 'set a score first' : 'cross-check this rating'}
         style={{
@@ -1216,7 +1261,7 @@ Be direct, not soft. No preamble, no recap, no "great question". Use plain text,
       </button>
       {open && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 20,
+          position: 'fixed', top: pos.top, left: pos.left, zIndex: 60,
           width: 320, padding: '14px 16px',
           background: 'var(--bg)', border: '1px solid var(--hi)', borderRadius: 6,
           boxShadow: '0 14px 30px rgba(0,0,0,0.18)',
@@ -1475,6 +1520,9 @@ function App() {
   const [decisionData, setDecisionData] = useState({ parameters: [], options: [], scores: [] })
   const [loading, setLoading] = useState(true)
   const [configError, setConfigError] = useState(false)
+  const [loadError, setLoadError] = useState(null)
+  const detailReq = useRef(0)
+  const pendingScores = useRef(new Set())
   const [mode, setMode] = useState(null)
 
   useEffect(() => {
@@ -1494,8 +1542,10 @@ function App() {
 
   async function loadDecisions() {
     setLoading(true)
-    const { data: decs } = await supabase.from('sigma_decisions').select('*')
+    const { data: decs, error } = await supabase.from('sigma_decisions').select('*')
       .neq('status', 'archived').order('updated_at', { ascending: false })
+    if (error) { setLoadError(error.message); setDecisions([]); setLoading(false); return }
+    setLoadError(null)
     if (!decs || decs.length === 0) { setDecisions([]); setLoading(false); return }
     const ids = decs.map(d => d.id)
     const [pRes, oRes, sRes] = await Promise.all([
@@ -1514,11 +1564,13 @@ function App() {
   }
 
   async function loadDecisionDetail(id) {
+    const token = ++detailReq.current
     const [pRes, oRes, sRes] = await Promise.all([
       supabase.from('sigma_parameters').select('*').eq('decision_id', id).order('display_order'),
       supabase.from('sigma_options').select('*').eq('decision_id', id).order('display_order'),
       supabase.from('sigma_scores').select('*, sigma_options!inner(decision_id)').eq('sigma_options.decision_id', id),
     ])
+    if (detailReq.current !== token) return
     setDecisionData({ parameters: pRes.data || [], options: oRes.data || [], scores: sRes.data || [] })
   }
 
@@ -1534,6 +1586,17 @@ function App() {
   async function updateDecisionTitle(title) {
     setDecisions(decisions.map(d => d.id === selectedId ? { ...d, title } : d))
     await supabase.from('sigma_decisions').update({ title }).eq('id', selectedId)
+  }
+
+  async function setDecisionStatus(id, status) {
+    setDecisions(ds => ds.map(d => d.id === id ? { ...d, status } : d))
+    await supabase.from('sigma_decisions').update({ status }).eq('id', id)
+  }
+
+  async function deleteDecision(id) {
+    setDecisions(ds => ds.filter(d => d.id !== id))
+    if (selectedId === id) { setSelectedId(null); setMode(null) }
+    await supabase.from('sigma_decisions').update({ status: 'archived' }).eq('id', id)
   }
 
   async function addParameter(name) {
@@ -1584,8 +1647,12 @@ function App() {
     } else {
       const isEmpty = updates.value == null && (!updates.notes || updates.notes === '')
       if (isEmpty) return
+      const key = optionId + ':' + parameterId
+      if (pendingScores.current.has(key)) return
+      pendingScores.current.add(key)
       const { data } = await supabase.from('sigma_scores')
         .insert({ option_id: optionId, parameter_id: parameterId, ...updates }).select().single()
+      pendingScores.current.delete(key)
       if (data) setDecisionData(prev => ({ ...prev, scores: [...prev.scores, data] }))
     }
   }
@@ -1617,7 +1684,7 @@ function App() {
       />
 
       {selectedId === null ? (
-        <Home decisions={decisions} onOpen={setSelectedId} onNew={createDecision} loading={loading} />
+        <Home decisions={decisions} onOpen={setSelectedId} onNew={createDecision} loading={loading} loadError={loadError} onRetry={loadDecisions} onDelete={deleteDecision} onReopen={id => setDecisionStatus(id, 'active')} />
       ) : selectedDecision ? (
         <DecisionView
           decision={selectedDecision}
@@ -1628,6 +1695,8 @@ function App() {
           optionHandlers={{ onAdd: addOption, onUpdate: updateOption, onDelete: deleteOption }}
           onScoreUpdate={updateScore}
           onOpenMode={setMode}
+          onStatusChange={s => setDecisionStatus(selectedId, s)}
+          onDelete={() => deleteDecision(selectedId)}
         />
       ) : (
         <div style={{ padding: '40px 28px' }}><span className="label">loading…</span></div>
