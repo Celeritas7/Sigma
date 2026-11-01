@@ -137,23 +137,77 @@ try {
 // =============================================================================
 // CALCULATIONS
 // =============================================================================
-function weightedTotal(optionId, scores, parameters, weightOverrides = null) {
-  let wSum = 0, vSum = 0
+// An option must be scored on at least this share of the considerations that
+// carry weight before it's ranked. Totals average only the scored cells, so
+// without this one lucky score could out-rank a fully scored option.
+const MIN_COVERAGE = 0.5
+// Totals closer than this display identically (2 decimals), so call them a tie.
+const TIE_EPSILON = 0.005
+
+function scoreStats(optionId, scores, parameters, weightOverrides = null) {
+  let wSum = 0, vSum = 0, active = 0, scored = 0
   for (const p of parameters) {
     const w = weightOverrides?.[p.id] ?? Number(p.weight)
     if (w <= 0) continue
+    active++
     const s = scores.find(sc => sc.option_id === optionId && sc.parameter_id === p.id)
     if (!s || s.value == null) continue
+    scored++
     wSum += w
     vSum += Number(s.value) * w
   }
-  return wSum > 0 ? vSum / wSum : null
+  return { total: wSum > 0 ? vSum / wSum : null, scored, active }
 }
 
+function weightedTotal(optionId, scores, parameters, weightOverrides = null) {
+  return scoreStats(optionId, scores, parameters, weightOverrides).total
+}
+
+// Ranked options come first (by total); options with too few scores sort
+// after them and are never treated as the leader.
 function rankedOptions(options, scores, parameters, weightOverrides = null) {
   return options
-    .map(o => ({ ...o, _total: weightedTotal(o.id, scores, parameters, weightOverrides) }))
-    .sort((a, b) => (b._total ?? -1) - (a._total ?? -1))
+    .map(o => {
+      const st = scoreStats(o.id, scores, parameters, weightOverrides)
+      return { ...o, _total: st.total, _scored: st.scored, _active: st.active,
+        _ranked: st.total != null && st.scored >= st.active * MIN_COVERAGE }
+    })
+    .sort((a, b) => (b._ranked - a._ranked) || ((b._total ?? -1) - (a._total ?? -1)))
+}
+
+// Leader, runner-up and the gap between them, from a rankedOptions() result.
+function standing(ranked) {
+  const top = ranked[0]?._ranked ? ranked[0] : null
+  const runner = top && ranked[1]?._ranked ? ranked[1] : null
+  const gap = runner ? top._total - runner._total : null
+  return { top, runner, gap, tied: gap != null && gap < TIE_EPSILON }
+}
+
+// small seeded PRNG (mulberry32): deterministic, so the same data always
+// gives the same robustness number
+function mulberry32(seed) {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+function hashString(str) {
+  let h = 2166136261
+  for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619)
+  return h >>> 0
+}
+
+function shuffled(items, rand) {
+  const a = [...items]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
 }
 
 function paramContribution(optionId, paramId, scores, parameters, weightOverrides = null) {
@@ -175,34 +229,33 @@ function completeness(parameters, options, scores) {
   return { filled, total, pct: filled / total }
 }
 
-// deterministic monte-carlo: ±2 jitter on each weight, count if leader holds
+// deterministic monte-carlo: independent ±2 jitter on each weight, count how
+// often the leader holds. null when there's no clear leader to test.
 function robustness(parameters, options, scores) {
-  const base = rankedOptions(options, scores, parameters)
-  if (!base[0] || base[0]._total == null) return null
-  const topId = base[0].id
+  const { top, tied } = standing(rankedOptions(options, scores, parameters))
+  if (!top || tied) return null
+  const rand = mulberry32(0x5167)
   let holds = 0
   const N = 100
   for (let i = 0; i < N; i++) {
     const over = {}
     for (const p of parameters) {
-      const j = Math.sin(i * 31 + Number(p.weight) * 7) * 2
-      over[p.id] = Math.max(0, Math.min(10, Number(p.weight) + j))
+      over[p.id] = Math.max(0, Math.min(10, Number(p.weight) + (rand() * 4 - 2)))
     }
-    const r = rankedOptions(options, scores, parameters, over)
-    if (r[0]?.id === topId) holds++
+    if (standing(rankedOptions(options, scores, parameters, over)).top?.id === top.id) holds++
   }
   return holds / N
 }
 
 function perWeightSensitivity(parameters, options, scores) {
-  const base = rankedOptions(options, scores, parameters)
-  if (!base[0]) return []
-  const topId = base[0].id
+  const { top, tied } = standing(rankedOptions(options, scores, parameters))
+  if (!top || tied) return []
+  const topId = top.id
   return parameters.map(p => {
     let flipped = 0; let flipAt = null
     for (let w = 0; w <= 10; w += 0.5) {
       const r = rankedOptions(options, scores, parameters, { [p.id]: w })
-      if (r[0]?.id !== topId) { flipped++; if (flipAt == null) flipAt = w }
+      if (standing(r).top?.id !== topId) { flipped++; if (flipAt == null) flipAt = w }
     }
     return { p, sens: flipped / 21, flipAt }
   })
@@ -530,9 +583,8 @@ function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, onDelete,
 function HomeRow({ d, idx, onClick, onDelete }) {
   const [hover, setHover] = useState(false)
   const ranked = rankedOptions(d._options, d._scores, d._parameters)
-  const leading = ranked[0] && ranked[0]._total != null ? ranked[0] : null
-  const runner  = ranked[1] && ranked[1]._total != null ? ranked[1] : null
-  const gap = leading && runner ? leading._total - runner._total : null
+  const { top: leading, gap, tied } = standing(ranked)
+  const hasScores = ranked.some(o => o._total != null)
   const c = completeness(d._parameters, d._options, d._scores)
   const daysOpen = Math.max(1, Math.floor((Date.now() - new Date(d.created_at).getTime()) / 86400000))
   const statusLabel = c.pct >= 0.7 ? 'ready to choose' : c.pct >= 0.35 ? 'still gathering' : 'just started'
@@ -547,7 +599,7 @@ function HomeRow({ d, idx, onClick, onDelete }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 15, fontWeight: 500 }}>{d.title?.trim() || <em style={{ color: 'var(--ink-faint)' }}>untitled question</em>}</span>
-            {gap != null && gap < 0.6 && <Pill color="var(--neg)">tight</Pill>}
+            {tied ? <Pill color="var(--neg)">tied</Pill> : gap != null && gap < 0.6 && <Pill color="var(--neg)">tight</Pill>}
             {c.pct === 0 && <Pill color="var(--ink-faint)">empty</Pill>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
@@ -559,12 +611,12 @@ function HomeRow({ d, idx, onClick, onDelete }) {
       {leading ? (
         <div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>{leading.name || 'unnamed'}</span>
-            <span className="mono" style={{ fontSize: 13, color: 'var(--accent)' }}>{leading._total.toFixed(2)}</span>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>{tied ? `${leading.name || 'unnamed'} = ${ranked[1].name || 'unnamed'}` : (leading.name || 'unnamed')}</span>
+            <span className="mono" style={{ fontSize: 13, color: tied ? 'var(--ink-soft)' : 'var(--accent)' }}>{leading._total.toFixed(2)}</span>
           </div>
-          {gap != null && <span className="label" style={{ marginTop: 4, display: 'block' }}>+{gap.toFixed(2)} ahead</span>}
+          {gap != null && <span className="label" style={{ marginTop: 4, display: 'block' }}>{tied ? 'tied' : `+${gap.toFixed(2)} ahead`}</span>}
         </div>
-      ) : (<span className="label">no scores yet</span>)}
+      ) : (<span className="label">{hasScores ? 'not enough scores' : 'no scores yet'}</span>)}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ flex: 1, height: 5, background: 'var(--rule-soft)', borderRadius: 3, overflow: 'hidden' }}>
@@ -733,8 +785,7 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
 
   const ranked = useMemo(() => rankedOptions(data.options, data.scores, data.parameters, overrides), [data, overrides])
   const baseline = useMemo(() => rankedOptions(data.options, data.scores, data.parameters), [data])
-  const top = ranked[0]; const runner = ranked[1]
-  const gap = top && runner && top._total != null && runner._total != null ? top._total - runner._total : null
+  const { top, runner, gap, tied } = standing(ranked)
   const c = completeness(data.parameters, data.options, data.scores)
   const robust = useMemo(() => robustness(data.parameters, data.options, data.scores), [data])
   const isWhatIf = overrides != null
@@ -744,10 +795,6 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
   data.parameters.forEach((pp, i) => { paramColors[pp.id] = `oklch(0.62 0.13 ${paramHues[i % paramHues.length]})` })
   const optColors = {}
   data.options.forEach((o, i) => { optColors[o.id] = optionColor(i) })
-
-  const maxContrib = Math.max(1, ...data.options.map(o =>
-    data.parameters.reduce((s, p) => s + paramContribution(o.id, p.id, data.scores, data.parameters, overrides), 0)
-  ))
 
   const onWeightEdit = (pid, w) => {
     const v = Math.max(0, Math.min(10, w))
@@ -810,7 +857,9 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
               <span className="label">standings · weighted total</span>
-              {gap != null && gap < 0.6 && <Pill color="var(--neg)">tight · only {gap.toFixed(2)} ahead</Pill>}
+              {tied
+                ? <Pill color="var(--neg)">tied · {top.name || 'option'} = {runner.name || 'option'}</Pill>
+                : gap != null && gap < 0.6 && <Pill color="var(--neg)">tight · only {gap.toFixed(2)} ahead</Pill>}
               {robust != null && (
                 <Pill color={robust >= 0.7 ? 'var(--accent)' : robust >= 0.4 ? 'var(--warn)' : 'var(--neg)'}>
                   robustness {robust.toFixed(2)}
@@ -827,7 +876,8 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
               <StandingsList
                 ranked={ranked} baseline={baseline}
                 parameters={data.parameters} scores={data.scores}
-                paramColors={paramColors} optColors={optColors} maxContrib={maxContrib} overrides={overrides}
+                leaderId={top && !tied ? top.id : null}
+                paramColors={paramColors} optColors={optColors} overrides={overrides}
                 highlight={highlight} onHighlight={setHighlight} isWhatIf={isWhatIf}
                 optionHandlers={optionHandlers}
               />
@@ -896,7 +946,7 @@ function StandingsList({ ranked, baseline, optionHandlers, optColors, ...shared 
   ))
 }
 
-function LeaderRow({ option, rank, parameters, scores, paramColors, optColor, maxContrib, overrides, highlight, onHighlight, baselineRank, isWhatIf, onRename, onDelete }) {
+function LeaderRow({ option, rank, parameters, scores, paramColors, optColor, leaderId, overrides, highlight, onHighlight, baselineRank, isWhatIf, onRename, onDelete }) {
   const [hover, setHover] = useState(false)
   const [pulse, setPulse] = useState(false)
   const prevRank = useRef(rank)
@@ -908,17 +958,21 @@ function LeaderRow({ option, rank, parameters, scores, paramColors, optColor, ma
       return () => clearTimeout(t)
     }
   }, [rank])
-  const isTop = rank === 0
+  const isTop = option.id === leaderId
   const shift = baselineRank - rank
   const parts = parameters.map(p => ({ p, contrib: paramContribution(option.id, p.id, scores, parameters, overrides) }))
-  const total = parts.reduce((s, x) => s + x.contrib, 0)
+  // the bar is drawn on the same 0–10 scale as the total; each segment is
+  // that parameter's share of it, so the segments add up to the number shown
+  const contribSum = parts.reduce((s, x) => s + x.contrib, 0)
+  const total = option._total ?? 0
+  const incomplete = option._scored < option._active
   return (
     <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{ display: 'grid', gridTemplateColumns: '40px 1fr 100px 36px', gap: 16, alignItems: 'center', padding: '18px 22px', borderBottom: '1px solid var(--rule-soft)',
         background: isTop ? (isWhatIf ? 'linear-gradient(90deg, var(--hi-soft), transparent 70%)' : 'linear-gradient(90deg, var(--accent-soft), transparent 70%)') : (hover ? 'var(--bg-soft)' : 'transparent'),
         boxShadow: isTop ? `inset 4px 0 0 ${isWhatIf ? 'var(--hi)' : 'var(--accent)'}` : (pulse ? `inset 3px 0 0 ${optColor}` : 'inset 0 0 0 transparent'),
         transition: 'background 150ms, box-shadow 500ms' }}>
-      <span className="mono" style={{ fontSize: 22, fontWeight: 600, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent)') : 'var(--ink-faint)' }}>{String(rank + 1).padStart(2, '0')}</span>
+      <span className="mono" style={{ fontSize: 22, fontWeight: 600, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent)') : 'var(--ink-faint)' }}>{option._ranked ? String(rank + 1).padStart(2, '0') : '––'}</span>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
           <span style={{ width: 9, height: 9, borderRadius: '50%', background: optColor, alignSelf: 'center', flexShrink: 0 }} />
@@ -926,24 +980,27 @@ function LeaderRow({ option, rank, parameters, scores, paramColors, optColor, ma
             <InlineText value={option.name} onCommit={onRename} placeholder="option" style={{ fontSize: 16, fontWeight: 500 }} />
           </span>
           {isTop && <Pill color={isWhatIf ? 'var(--hi)' : 'var(--accent)'}>leading</Pill>}
-          {shift > 0 && <Pill color="var(--accent)">↑{shift}</Pill>}
-          {shift < 0 && <Pill color="var(--neg)">↓{Math.abs(shift)}</Pill>}
+          {option._ranked && shift > 0 && <Pill color="var(--accent)">↑{shift}</Pill>}
+          {option._ranked && shift < 0 && <Pill color="var(--neg)">↓{Math.abs(shift)}</Pill>}
+          {incomplete && <Pill color="var(--warn)">{option._scored}/{option._active} scored</Pill>}
         </div>
-        <div style={{ height: isTop ? 14 : 10, width: `${Math.max(6, (total / maxContrib) * 100)}%`, display: 'flex', borderRadius: 3, overflow: 'hidden', minWidth: 16, transition: 'width 320ms ease-out', boxShadow: '0 0 0 1px var(--rule-soft)' }}>
-          {parts.map(({ p, contrib }) => contrib > 0 && (
-            <div key={p.id} title={`${p.name}: ${contrib.toFixed(1)}`}
-              onMouseEnter={() => onHighlight(p.id)} onMouseLeave={() => onHighlight(null)}
-              style={{ width: `${(contrib / total) * 100}%`, height: '100%', background: paramColors[p.id],
-                opacity: highlight == null || highlight === p.id ? 1 : 0.18,
-                transition: 'opacity 150ms, width 320ms ease-out' }} />
-          ))}
+        <div style={{ height: isTop ? 14 : 10, borderRadius: 3, background: 'var(--bg-inset)', boxShadow: '0 0 0 1px var(--rule-soft)', overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${(total / 10) * 100}%`, display: 'flex', opacity: option._ranked ? 1 : 0.45, transition: 'width 320ms ease-out' }}>
+            {parts.map(({ p, contrib }) => contrib > 0 && (
+              <div key={p.id} title={`${p.name}: +${((contrib / contribSum) * total).toFixed(2)}`}
+                onMouseEnter={() => onHighlight(p.id)} onMouseLeave={() => onHighlight(null)}
+                style={{ width: `${(contrib / contribSum) * 100}%`, height: '100%', background: paramColors[p.id],
+                  opacity: highlight == null || highlight === p.id ? 1 : 0.18,
+                  transition: 'opacity 150ms, width 320ms ease-out' }} />
+            ))}
+          </div>
         </div>
       </div>
       <div style={{ textAlign: 'right' }}>
-        <span className="mono" style={{ fontSize: 26, fontWeight: 500, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent)') : 'var(--ink)', transition: 'color 200ms' }}>
+        <span className="mono" style={{ fontSize: 26, fontWeight: 500, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent)') : option._ranked ? 'var(--ink)' : 'var(--ink-faint)', transition: 'color 200ms' }}>
           {option._total != null ? option._total.toFixed(2) : '—'}
         </span>
-        <div style={{ marginTop: 2 }}><span className="label">of 10</span></div>
+        <div style={{ marginTop: 2 }}><span className="label">{option._ranked || option._total == null ? 'of 10' : 'not ranked'}</span></div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         {hover && <button className="iconbtn" onClick={onDelete} title="remove option">×</button>}
@@ -1109,28 +1166,39 @@ function ParameterRow({ parameter, color, onUpdate, onDelete }) {
 
 // Score slider — drag 0–10 with visible value. Variant of WeightSlider sized
 // to fit inside a matrix cell.
+// While dragging, the value lives in local state; it's saved once on release,
+// not on every pointer move (each change is a database write).
 function ScoreSlider({ value, onChange }) {
   const trackRef = useRef(null)
-  const [dragging, setDragging] = useState(false)
-  const v = value ?? null
-  const move = useCallback(cx => {
+  const [draft, setDraft] = useState(null)
+  const draftRef = useRef(null)
+  const dragging = draft != null
+  const v = draft ?? value ?? null
+  const move = cx => {
     if (!trackRef.current) return
     const r = trackRef.current.getBoundingClientRect()
     const t = Math.max(0, Math.min(1, (cx - r.left) / r.width))
-    onChange(Math.round(t * 20) / 2)
-  }, [onChange])
+    draftRef.current = Math.round(t * 20) / 2
+    setDraft(draftRef.current)
+  }
   useEffect(() => {
     if (!dragging) return
     const m = e => move(e.clientX)
-    const u = () => setDragging(false)
+    const u = () => {
+      const next = draftRef.current
+      draftRef.current = null
+      setDraft(null)
+      if (next != null && next !== value) onChange(next)
+    }
     window.addEventListener('pointermove', m)
     window.addEventListener('pointerup', u)
-    return () => { window.removeEventListener('pointermove', m); window.removeEventListener('pointerup', u) }
-  }, [dragging, move])
+    window.addEventListener('pointercancel', u)
+    return () => { window.removeEventListener('pointermove', m); window.removeEventListener('pointerup', u); window.removeEventListener('pointercancel', u) }
+  }, [dragging, value, onChange])
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <div ref={trackRef}
-        onPointerDown={e => { setDragging(true); move(e.clientX) }}
+        onPointerDown={e => move(e.clientX)}
         style={{ position: 'relative', flex: 1, height: 22, cursor: 'pointer', touchAction: 'none', userSelect: 'none' }}>
         {/* track */}
         <div style={{ position: 'absolute', top: 10, left: 0, right: 0, height: 2, background: 'var(--rule)', borderRadius: 1 }} />
@@ -1325,7 +1393,7 @@ function Cell({ param, option, score, onUpdate, allOptions, allScores, parameter
 // =============================================================================
 function WhatIfOverlay({ data, onClose }) {
   const baseline = useMemo(() => rankedOptions(data.options, data.scores, data.parameters), [data])
-  const baseTop = baseline[0]
+  const { top: baseTop, runner: baseRunner, tied } = standing(baseline)
   const robust = useMemo(() => robustness(data.parameters, data.options, data.scores), [data])
   const baseSens = useMemo(() => perWeightSensitivity(data.parameters, data.options, data.scores), [data])
 
@@ -1345,6 +1413,13 @@ function WhatIfOverlay({ data, onClose }) {
           <button className="iconbtn" onClick={onClose}>×</button>
         </div>
         <div style={{ padding: '24px 32px 40px' }}>
+          {robust == null && (
+            <div style={{ padding: '18px 22px', background: 'var(--bg-inset)', border: '1px solid var(--rule)', borderRadius: 8, fontSize: 14, lineHeight: 1.55, marginBottom: 28 }}>
+              {tied
+                ? <><strong>{baseTop.name || 'option'}</strong> and <strong>{baseRunner.name || 'option'}</strong> are tied, so there's no leader to stress-test. Score more considerations or adjust weights to separate them.</>
+                : 'Not enough scores yet to test. Each option needs scores on at least half of the weighted considerations.'}
+            </div>
+          )}
           {robust != null && baseTop && (
             <div style={{ padding: '24px 28px', background: 'var(--ink)', color: 'var(--bg)', borderRadius: 8, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 32, alignItems: 'center', marginBottom: 28 }}>
               <div>
@@ -1358,7 +1433,7 @@ function WhatIfOverlay({ data, onClose }) {
               </div>
             </div>
           )}
-          <section>
+          {baseSens.length > 0 && <section>
             <span className="label">per-weight sensitivity · how often does sweeping each weight 0→10 flip the leader?</span>
             <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12 }}>
               {baseSens.map((row, i) => {
@@ -1379,7 +1454,7 @@ function WhatIfOverlay({ data, onClose }) {
                 )
               })}
             </div>
-          </section>
+          </section>}
         </div>
       </div>
     </div>
@@ -1392,8 +1467,17 @@ function WhatIfOverlay({ data, onClose }) {
 function BlindOverlay({ data, onScoreUpdate, onClose }) {
   const [paramIdx, setParamIdx] = useState(0)
   const [revealed, setRevealed] = useState(false)
+  // scores given in this pass, for the current parameter only. Earlier scores
+  // stay hidden until reveal so they can't anchor the new ones.
+  const [pass, setPass] = useState({})
+  // new random order each time the overlay opens, stable while it's open
+  const [seed] = useState(() => Math.floor(Math.random() * 2 ** 32))
   const params = data.parameters
   const param = params[paramIdx]
+  const order = useMemo(
+    () => param ? shuffled(data.options, mulberry32(seed ^ hashString(param.id))) : [],
+    [data.options, param?.id, seed])
+  const goTo = i => { setParamIdx(i); setRevealed(false); setPass({}) }
 
   useEffect(() => {
     const k = e => { if (e.key === 'Escape') onClose() }
@@ -1411,8 +1495,7 @@ function BlindOverlay({ data, onScoreUpdate, onClose }) {
       </div>
     )
   }
-  const shuffled = [...data.options].sort((a, b) => ((a.id.charCodeAt(0) + param.id.charCodeAt(0)) % 7) - ((b.id.charCodeAt(0) + param.id.charCodeAt(0)) % 7))
-  const scoredCount = shuffled.filter(o => data.scores.find(s => s.option_id === o.id && s.parameter_id === param.id && s.value != null)).length
+  const scoredCount = order.filter(o => pass[o.id] != null).length
 
   return (
     <div className="overlay-bg" onClick={onClose}>
@@ -1439,13 +1522,14 @@ function BlindOverlay({ data, onScoreUpdate, onClose }) {
               <div style={{ marginTop: 2, fontSize: 22, fontWeight: 500 }}>{param.name}</div>
               <div style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 2 }}>weight {param.weight} · {param.input_type || 'text'}{param.unit ? ` · ${param.unit}` : ''}</div>
             </div>
-            <span className="label">{scoredCount}/{shuffled.length} scored</span>
+            <span className="label">{scoredCount}/{order.length} scored this pass</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {shuffled.map((o, i) => {
+            {order.map((o, i) => {
               const score = data.scores.find(s => s.option_id === o.id && s.parameter_id === param.id)
               return <BlindCard key={o.id} letter={String.fromCharCode(65 + i)} option={o} score={score} param={param} revealed={revealed}
-                onScore={v => onScoreUpdate(o.id, param.id, { value: v })}
+                passValue={pass[o.id]}
+                onScore={v => { setPass(p => ({ ...p, [o.id]: v })); onScoreUpdate(o.id, param.id, { value: v }) }}
                 onRaw={v => onScoreUpdate(o.id, param.id, { notes: v })} />
             })}
           </div>
@@ -1455,9 +1539,9 @@ function BlindOverlay({ data, onScoreUpdate, onClose }) {
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn btn-outline btn-sm" onClick={() => setRevealed(r => !r)}>{revealed ? 'Hide names' : 'Reveal names'}</button>
-              <button className="btn btn-outline btn-sm" disabled={paramIdx === 0} onClick={() => { setParamIdx(i => i - 1); setRevealed(false) }}>← prev</button>
+              <button className="btn btn-outline btn-sm" disabled={paramIdx === 0} onClick={() => goTo(paramIdx - 1)}>← prev</button>
               {paramIdx < params.length - 1
-                ? <button className="btn btn-primary btn-sm" onClick={() => { setParamIdx(i => i + 1); setRevealed(false) }}>Next →</button>
+                ? <button className="btn btn-primary btn-sm" onClick={() => goTo(paramIdx + 1)}>Next →</button>
                 : <button className="btn btn-primary btn-sm" onClick={onClose}>Done</button>
               }
             </div>
@@ -1468,13 +1552,14 @@ function BlindOverlay({ data, onScoreUpdate, onClose }) {
   )
 }
 
-function BlindCard({ letter, option, score, param, revealed, onScore, onRaw }) {
+function BlindCard({ letter, option, score, param, revealed, passValue, onScore, onRaw }) {
   const [editingRaw, setEditingRaw] = useState(false)
   const hasRaw = score?.notes != null && score.notes !== ''
-  const hasValue = score?.value != null
+  const done = passValue != null
+  const hadEarlier = score?.value != null && !done
   return (
-    <div style={{ padding: '16px 20px', border: `1px solid ${hasValue ? 'var(--rule)' : 'var(--hi)'}`, background: hasValue ? 'var(--bg)' : 'var(--hi-soft)', borderRadius: 6, display: 'grid', gridTemplateColumns: '52px 1fr auto', gap: 18, alignItems: 'center' }}>
-      <div style={{ width: 44, height: 44, background: revealed ? 'var(--accent)' : (hasValue ? 'var(--bg-inset)' : 'var(--hi)'), borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 600, color: revealed ? 'var(--bg)' : (hasValue ? 'var(--ink)' : 'var(--bg)'), transition: 'all 220ms' }}>
+    <div style={{ padding: '16px 20px', border: `1px solid ${done ? 'var(--rule)' : 'var(--hi)'}`, background: done ? 'var(--bg)' : 'var(--hi-soft)', borderRadius: 6, display: 'grid', gridTemplateColumns: '52px 1fr auto', gap: 18, alignItems: 'center' }}>
+      <div style={{ width: 44, height: 44, background: revealed ? 'var(--accent)' : (done ? 'var(--bg-inset)' : 'var(--hi)'), borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 600, color: revealed ? 'var(--bg)' : (done ? 'var(--ink)' : 'var(--bg)'), transition: 'all 220ms' }}>
         {revealed ? option.name?.charAt(0).toUpperCase() : letter}
       </div>
       <div style={{ minWidth: 0 }}>
@@ -1487,26 +1572,24 @@ function BlindCard({ letter, option, score, param, revealed, onScore, onRaw }) {
               </div>
           }
         </div>
+        {hadEarlier && (
+          <span className="label" style={{ marginTop: 6, display: 'block' }}>
+            {revealed ? `earlier score ${Number(score.value).toFixed(1)}` : 'earlier score hidden · picking replaces it'}
+          </span>
+        )}
       </div>
-      {hasValue ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ textAlign: 'right' }}>
-            <span className="mono" style={{ fontSize: 22, fontWeight: 500, color: 'var(--accent)' }}>{Number(score.value).toFixed(1)}</span>
-            <div style={{ marginTop: 2 }}><span className="label">scored</span></div>
-          </div>
-          <button className="iconbtn" onClick={() => onScore(null)} title="clear">×</button>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', gap: 4 }}>
-          {[0, 2.5, 5, 7.5, 10].map(v => (
-            <button key={v} onClick={() => onScore(v)} className="mono"
-              style={{ padding: '6px 11px', background: 'var(--bg)', border: '1px solid var(--rule)', fontSize: 11, borderRadius: 4, color: 'var(--ink)' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--ink)'; e.currentTarget.style.color = 'var(--bg)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--ink)' }}
+      <div style={{ display: 'flex', gap: 4 }}>
+        {[0, 2.5, 5, 7.5, 10].map(v => {
+          const on = passValue === v
+          return (
+            <button key={v} onClick={() => onScore(v)} className="mono" aria-pressed={on}
+              style={{ padding: '6px 11px', background: on ? 'var(--accent)' : 'var(--bg)', border: `1px solid ${on ? 'var(--accent)' : 'var(--rule)'}`, fontSize: 11, borderRadius: 4, color: on ? '#fff' : 'var(--ink)', fontWeight: on ? 600 : 400 }}
+              onMouseEnter={e => { if (!on) { e.currentTarget.style.background = 'var(--ink)'; e.currentTarget.style.color = 'var(--bg)' } }}
+              onMouseLeave={e => { if (!on) { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--ink)' } }}
             >{v}</button>
-          ))}
-        </div>
-      )}
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -1521,9 +1604,39 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [configError, setConfigError] = useState(false)
   const [loadError, setLoadError] = useState(null)
+  const [saveError, setSaveError] = useState(null)
   const detailReq = useRef(0)
-  const pendingScores = useRef(new Set())
+  // dataRef always holds the latest decisionData, so async handlers never act
+  // on a stale copy. Update both through patchData.
+  const dataRef = useRef(decisionData)
+  const selectedRef = useRef(selectedId)
+  selectedRef.current = selectedId
+  // cell key -> promise of the first insert for that score cell
+  const scoreInserts = useRef(new Map())
   const [mode, setMode] = useState(null)
+
+  function patchData(fn) {
+    dataRef.current = fn(dataRef.current)
+    setDecisionData(dataRef.current)
+  }
+
+  // Run a Supabase write. On failure, tell the user and reload from the
+  // database so the screen doesn't keep showing a change that wasn't saved.
+  async function save(what, query) {
+    let res
+    try { res = await query } catch (e) { res = { error: e } }
+    if (!res.error) return res
+    setSaveError(`Couldn't save ${what}: ${res.error.message || res.error}`)
+    loadDecisions()
+    if (selectedRef.current) loadDecisionDetail(selectedRef.current)
+    return null
+  }
+
+  useEffect(() => {
+    if (!saveError) return
+    const t = setTimeout(() => setSaveError(null), 8000)
+    return () => clearTimeout(t)
+  }, [saveError])
 
   useEffect(() => {
     const accent = localStorage.getItem('sigma_accent') || 'green'
@@ -1571,90 +1684,105 @@ function App() {
       supabase.from('sigma_scores').select('*, sigma_options!inner(decision_id)').eq('sigma_options.decision_id', id),
     ])
     if (detailReq.current !== token) return
-    setDecisionData({ parameters: pRes.data || [], options: oRes.data || [], scores: sRes.data || [] })
+    patchData(() => ({ parameters: pRes.data || [], options: oRes.data || [], scores: sRes.data || [] }))
   }
 
   async function createDecision() {
-    const { data } = await supabase.from('sigma_decisions').insert({ title: '', type: 'custom', status: 'active' }).select().single()
-    if (data) {
-      setDecisions([{ ...data, _parameters: [], _options: [], _scores: [] }, ...decisions])
-      setSelectedId(data.id)
-      setDecisionData({ parameters: [], options: [], scores: [] })
+    const res = await save('the new decision', supabase.from('sigma_decisions').insert({ title: '', type: 'custom', status: 'active' }).select().single())
+    if (res?.data) {
+      setDecisions(ds => [{ ...res.data, _parameters: [], _options: [], _scores: [] }, ...ds])
+      setSelectedId(res.data.id)
+      patchData(() => ({ parameters: [], options: [], scores: [] }))
     }
   }
 
   async function updateDecisionTitle(title) {
-    setDecisions(decisions.map(d => d.id === selectedId ? { ...d, title } : d))
-    await supabase.from('sigma_decisions').update({ title }).eq('id', selectedId)
+    setDecisions(ds => ds.map(d => d.id === selectedId ? { ...d, title } : d))
+    await save('the title', supabase.from('sigma_decisions').update({ title }).eq('id', selectedId))
   }
 
   async function setDecisionStatus(id, status) {
     setDecisions(ds => ds.map(d => d.id === id ? { ...d, status } : d))
-    await supabase.from('sigma_decisions').update({ status }).eq('id', id)
+    await save('the decision status', supabase.from('sigma_decisions').update({ status }).eq('id', id))
   }
 
   async function deleteDecision(id) {
     setDecisions(ds => ds.filter(d => d.id !== id))
     if (selectedId === id) { setSelectedId(null); setMode(null) }
-    await supabase.from('sigma_decisions').update({ status: 'archived' }).eq('id', id)
+    await save('the archive', supabase.from('sigma_decisions').update({ status: 'archived' }).eq('id', id))
   }
 
   async function addParameter(name) {
-    const { data } = await supabase.from('sigma_parameters')
-      .insert({ decision_id: selectedId, name, weight: 5.0, display_order: decisionData.parameters.length, input_type: 'text' })
-      .select().single()
-    if (data) setDecisionData(prev => ({ ...prev, parameters: [...prev.parameters, data] }))
+    const res = await save('the consideration', supabase.from('sigma_parameters')
+      .insert({ decision_id: selectedId, name, weight: 5.0, display_order: dataRef.current.parameters.length, input_type: 'text' })
+      .select().single())
+    if (res?.data) patchData(d => ({ ...d, parameters: [...d.parameters, res.data] }))
   }
 
   async function updateParameter(id, fields) {
-    setDecisionData(prev => ({ ...prev, parameters: prev.parameters.map(p => p.id === id ? { ...p, ...fields } : p) }))
-    await supabase.from('sigma_parameters').update(fields).eq('id', id)
+    patchData(d => ({ ...d, parameters: d.parameters.map(p => p.id === id ? { ...p, ...fields } : p) }))
+    await save('the consideration', supabase.from('sigma_parameters').update(fields).eq('id', id))
   }
 
   async function deleteParameter(id) {
-    setDecisionData(prev => ({ ...prev, parameters: prev.parameters.filter(p => p.id !== id), scores: prev.scores.filter(s => s.parameter_id !== id) }))
-    await supabase.from('sigma_parameters').delete().eq('id', id)
+    const p = dataRef.current.parameters.find(x => x.id === id)
+    const n = dataRef.current.scores.filter(s => s.parameter_id === id).length
+    if (!confirm(`Delete "${p?.name || 'this consideration'}"${n ? ` and its ${n} score${n === 1 ? '' : 's'}` : ''}? This can't be undone.`)) return
+    patchData(d => ({ ...d, parameters: d.parameters.filter(p => p.id !== id), scores: d.scores.filter(s => s.parameter_id !== id) }))
+    await save('the deletion', supabase.from('sigma_parameters').delete().eq('id', id))
   }
 
   async function addOption(name) {
-    const { data } = await supabase.from('sigma_options')
-      .insert({ decision_id: selectedId, name, display_order: decisionData.options.length })
-      .select().single()
-    if (data) setDecisionData(prev => ({ ...prev, options: [...prev.options, data] }))
+    const res = await save('the option', supabase.from('sigma_options')
+      .insert({ decision_id: selectedId, name, display_order: dataRef.current.options.length })
+      .select().single())
+    if (res?.data) patchData(d => ({ ...d, options: [...d.options, res.data] }))
   }
 
   async function updateOption(id, fields) {
-    setDecisionData(prev => ({ ...prev, options: prev.options.map(o => o.id === id ? { ...o, ...fields } : o) }))
-    await supabase.from('sigma_options').update(fields).eq('id', id)
+    patchData(d => ({ ...d, options: d.options.map(o => o.id === id ? { ...o, ...fields } : o) }))
+    await save('the option', supabase.from('sigma_options').update(fields).eq('id', id))
   }
 
   async function deleteOption(id) {
-    setDecisionData(prev => ({ ...prev, options: prev.options.filter(o => o.id !== id), scores: prev.scores.filter(s => s.option_id !== id) }))
-    await supabase.from('sigma_options').delete().eq('id', id)
+    const o = dataRef.current.options.find(x => x.id === id)
+    const n = dataRef.current.scores.filter(s => s.option_id === id).length
+    if (!confirm(`Delete "${o?.name || 'this option'}"${n ? ` and its ${n} score${n === 1 ? '' : 's'}` : ''}? This can't be undone.`)) return
+    patchData(d => ({ ...d, options: d.options.filter(o => o.id !== id), scores: d.scores.filter(s => s.option_id !== id) }))
+    await save('the deletion', supabase.from('sigma_options').delete().eq('id', id))
   }
 
   async function updateScore(optionId, parameterId, updates) {
-    const existing = decisionData.scores.find(s => s.option_id === optionId && s.parameter_id === parameterId)
+    const key = optionId + ':' + parameterId
+    // The first save of a cell is an insert. Changes made while it's in
+    // flight wait for it, then apply to the new row instead of being dropped.
+    while (scoreInserts.current.has(key)) await scoreInserts.current.get(key)
+    const existing = dataRef.current.scores.find(s => s.option_id === optionId && s.parameter_id === parameterId)
     if (existing) {
       const merged = { ...existing, ...updates }
       if (merged.value == null && (!merged.notes || merged.notes === '')) {
-        setDecisionData(prev => ({ ...prev, scores: prev.scores.filter(s => s.id !== existing.id) }))
-        await supabase.from('sigma_scores').delete().eq('id', existing.id)
+        patchData(d => ({ ...d, scores: d.scores.filter(s => s.id !== existing.id) }))
+        await save('the score', supabase.from('sigma_scores').delete().eq('id', existing.id))
         return
       }
-      setDecisionData(prev => ({ ...prev, scores: prev.scores.map(s => s.id === existing.id ? merged : s) }))
-      await supabase.from('sigma_scores').update(updates).eq('id', existing.id)
-    } else {
-      const isEmpty = updates.value == null && (!updates.notes || updates.notes === '')
-      if (isEmpty) return
-      const key = optionId + ':' + parameterId
-      if (pendingScores.current.has(key)) return
-      pendingScores.current.add(key)
-      const { data } = await supabase.from('sigma_scores')
-        .insert({ option_id: optionId, parameter_id: parameterId, ...updates }).select().single()
-      pendingScores.current.delete(key)
-      if (data) setDecisionData(prev => ({ ...prev, scores: [...prev.scores, data] }))
+      patchData(d => ({ ...d, scores: d.scores.map(s => s.id === existing.id ? merged : s) }))
+      await save('the score', supabase.from('sigma_scores').update(updates).eq('id', existing.id))
+      return
     }
+    if (updates.value == null && (!updates.notes || updates.notes === '')) return
+    // show the value straight away under a placeholder id; swap in the real row when the insert returns
+    const tempId = 'pending:' + key
+    patchData(d => ({ ...d, scores: [...d.scores, { id: tempId, option_id: optionId, parameter_id: parameterId, value: null, notes: null, ...updates }] }))
+    const insert = save('the score', supabase.from('sigma_scores')
+      .insert({ option_id: optionId, parameter_id: parameterId, ...updates }).select().single())
+      .then(res => {
+        patchData(d => ({ ...d, scores: res?.data
+          ? d.scores.map(s => s.id === tempId ? res.data : s)
+          : d.scores.filter(s => s.id !== tempId) }))
+        scoreInserts.current.delete(key)
+      })
+    scoreInserts.current.set(key, insert)
+    await insert
   }
 
   function goHome() { setSelectedId(null); setMode(null); loadDecisions() }
@@ -1704,6 +1832,13 @@ function App() {
 
       {selectedId && mode === 'whatif' && <WhatIfOverlay data={decisionData} onClose={() => setMode(null)} />}
       {selectedId && mode === 'blind'  && <BlindOverlay  data={decisionData} onScoreUpdate={updateScore} onClose={() => setMode(null)} />}
+
+      {saveError && (
+        <div role="alert" style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 70, maxWidth: 'calc(100vw - 32px)', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px 10px 16px', background: 'var(--neg-soft)', border: '1px solid var(--neg)', borderRadius: 10, boxShadow: 'var(--shadow-md)', animation: 'popin 200ms' }}>
+          <span style={{ fontSize: 13, color: 'var(--neg)' }}>{saveError}. Reloaded the saved data.</span>
+          <button className="iconbtn" aria-label="dismiss" onClick={() => setSaveError(null)} style={{ color: 'var(--neg)' }}>×</button>
+        </div>
+      )}
 
       <footer style={{ borderTop: '1px solid var(--rule)', padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span className="label">Σ Sigma · v0.5 trajectory</span>
