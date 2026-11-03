@@ -13,6 +13,7 @@ React 18 + Supabase, built with Vite.
 | `index.html` | Page shell; Vite injects the built script. |
 | `src/main.jsx`, `src/App.jsx` | Startup, app state, data loading and saving. |
 | `src/lib/scoring.js` | All the decision maths: weighted totals, ranking, ties, robustness, sensitivity. Tested in `scoring.test.js`. |
+| `src/lib/templates.js` | Starter templates and the template ↔ decision conversions. Tested in `templates.test.js`. |
 | `src/lib/` | Also the Supabase client, theme colours, small UI helpers. |
 | `src/components/` | Shared pieces, header, sign-in. |
 | `src/views/` | Home, the decision page (`decision/`), What-if, Blind mode. |

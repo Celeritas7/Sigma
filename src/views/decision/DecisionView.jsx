@@ -8,11 +8,12 @@ import { AddOptionRow, Legend, StandingsList } from './Standings'
 import { WeightPanel } from './Weights'
 import { CloseDialog } from './CloseDialog'
 import { Outcome } from './Outcome'
+import { SaveTemplateDialog } from './SaveTemplate'
 
 // =============================================================================
 // DECISION VIEW
 // =============================================================================
-export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, optionHandlers, onScoreUpdate, onOpenMode, onStatusChange, onClose, onOutcome, onDelete }) {
+export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, optionHandlers, onScoreUpdate, onOpenMode, onStatusChange, onClose, onOutcome, onDelete, onSaveTemplate }) {
   const [overrides, setOverrides] = useState(null)
   const [highlight, setHighlight] = useState(null)
 
@@ -39,6 +40,7 @@ export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandl
   }
 
   const [closing, setClosing] = useState(false)
+  const [savingTemplate, setSavingTemplate] = useState(false)
   // what was actually chosen, if anything; the option may since have been deleted
   const chosen = data.options.find(o => o.id === decision.final_choice_id)
   const closed = decision.status === 'closed'
@@ -69,6 +71,7 @@ export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandl
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-outline btn-sm" onClick={() => onOpenMode('blind')}>Blind score mode</button>
             <button className="btn btn-outline btn-sm" onClick={() => onOpenMode('whatif')}>What-if</button>
+            {data.parameters.length > 0 && <button className="btn btn-outline btn-sm" onClick={() => setSavingTemplate(true)}>Save as template</button>}
             {closed
               ? <button className="btn btn-outline btn-sm" onClick={() => onStatusChange('active')}>Reopen</button>
               : <button className="btn btn-accent btn-sm" onClick={() => setClosing(true)}>✓ Close decision</button>}
@@ -167,6 +170,11 @@ export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandl
           </section>
         )}
       </main>
+      {savingTemplate && (
+        <SaveTemplateDialog decision={decision} parameters={data.parameters}
+          onCancel={() => setSavingTemplate(false)}
+          onSave={async name => { const ok = await onSaveTemplate(name); if (ok) setSavingTemplate(false); return ok }} />
+      )}
       {closing && (
         <CloseDialog ranked={baseline} leaderId={standing(baseline).tied ? null : standing(baseline).top?.id} decision={decision}
           onCancel={() => setClosing(false)}
