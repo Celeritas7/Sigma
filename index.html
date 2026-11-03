@@ -423,7 +423,7 @@ function RawInput({ value, onChange, unit, type, options }) {
 // =============================================================================
 // HEADER
 // =============================================================================
-function TopHeader({ middle, onHome, onNew }) {
+function TopHeader({ middle, onHome, onNew, email, onSignOut }) {
   return (
     <header style={{
       padding: '12px 22px',
@@ -446,8 +446,42 @@ function TopHeader({ middle, onHome, onNew }) {
           <span style={{ fontSize: 14, lineHeight: 1 }}>+</span> New
         </button>
         <AccentMenu />
+        <button className="btn btn-sm" onClick={onSignOut} title={email ? `Signed in as ${email}` : undefined} style={{ background: 'transparent', color: 'rgba(255,255,255,0.7)', border: '1px solid transparent' }}>
+          Sign out
+        </button>
       </div>
     </header>
+  )
+}
+
+// =============================================================================
+// SIGN IN
+// =============================================================================
+function SignIn() {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+  const signIn = async () => {
+    setBusy(true); setError(null)
+    // come back to this exact page after Google; this URL must be in the
+    // Supabase project's Auth > URL Configuration > Redirect URLs
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + window.location.pathname },
+    })
+    if (error) { setError(error.message); setBusy(false) }
+  }
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div className="card" style={{ width: 380, maxWidth: '100%', padding: '36px 32px', textAlign: 'center' }}>
+        <div style={{ width: 52, height: 52, margin: '0 auto', background: 'linear-gradient(135deg, var(--accent), var(--accent-2))', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 28, borderRadius: 13, boxShadow: 'var(--shadow-sm)' }}>Σ</div>
+        <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-0.02em', margin: '18px 0 6px' }}>Sigma</h1>
+        <p style={{ fontSize: 14, color: 'var(--ink-soft)', margin: '0 0 24px', lineHeight: 1.5 }}>Sign in to see your decisions. They're private to your account.</p>
+        <button className="btn btn-primary" onClick={signIn} disabled={busy} style={{ width: '100%', justifyContent: 'center' }}>
+          {busy ? 'Opening Google…' : 'Continue with Google'}
+        </button>
+        {error && <p style={{ fontSize: 13, color: 'var(--neg)', margin: '14px 0 0' }}>{error}</p>}
+      </div>
+    </div>
   )
 }
 
@@ -1081,8 +1115,7 @@ function Matrix({ parameters, options, scores, paramColors, optColors, highlight
               {options.map(o => (
                 <Cell key={o.id} param={pp} option={o}
                   score={scores.find(s => s.option_id === o.id && s.parameter_id === pp.id)}
-                  onUpdate={fields => onScoreUpdate(o.id, pp.id, fields)}
-                  allOptions={options} allScores={scores} parameters={parameters} />
+                  onUpdate={fields => onScoreUpdate(o.id, pp.id, fields)} />
               ))}
             </tr>
           )
@@ -1232,32 +1265,22 @@ function ScoreSlider({ value, onChange }) {
 // AI cross-check — asks Claude to challenge the user's rating given the
 // parameter, option, raw evidence, and current score. Inline popover.
 //
-// Calls one of two endpoints, whichever responds:
-//   1. window.claude.complete — present in claude.ai artifacts (dev/preview)
-//   2. <SUPABASE_URL>/functions/v1/cross-check — production
-//      (deploy supabase/functions/cross-check/index.ts; see README at bottom)
-async function askClaude(prompt) {
-  // 1. artifact helper (dev only)
-  if (typeof window !== 'undefined' && window.claude?.complete) {
-    return await window.claude.complete(prompt)
-  }
-  // 2. production: call your Supabase Edge Function
-  const url = `${SUPABASE_URL}/functions/v1/cross-check`
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify({ prompt }),
+// The cross-check Edge Function builds the prompt itself from the ids, reading
+// the rows with the signed-in user's token, so it only works on the user's own
+// decisions and can't be used as a general Claude proxy.
+async function askClaude(optionId, parameterId) {
+  const { data, error } = await supabase.functions.invoke('cross-check', {
+    body: { option_id: optionId, parameter_id: parameterId },
   })
-  if (!res.ok) throw new Error(`cross-check ${res.status}: ${await res.text()}`)
-  const data = await res.json()
-  return data.text || data.content || ''
+  if (error) {
+    let detail = error.message
+    try { detail = (await error.context.json()).error || detail } catch {}
+    throw new Error(`cross-check: ${detail}`)
+  }
+  return data?.text || ''
 }
 
-function CrossCheck({ param, option, score, allOptions, allScores, parameters }) {
+function CrossCheck({ param, option, score }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [response, setResponse] = useState('')
@@ -1268,35 +1291,7 @@ function CrossCheck({ param, option, score, allOptions, allScores, parameters })
   const ask = async () => {
     setLoading(true); setError(null); setResponse('')
     try {
-      // build context: this score, plus how this option compares to others on this param
-      const peers = allOptions
-        .filter(o => o.id !== option.id)
-        .map(o => {
-          const s = allScores.find(x => x.option_id === o.id && x.parameter_id === param.id)
-          return { name: o.name, value: s?.value, raw: s?.notes }
-        })
-        .filter(x => x.value != null || x.raw)
-
-      const prompt = `You are a thoughtful decision-coach helping the user stress-test their own ratings on a weighted-decision tool. Your goal is to push back when you see possible bias — anchoring, halo effect, recency, motivated reasoning — not to be agreeable.
-
-Decision context:
-- Consideration: "${param.name}" (type: ${param.input_type || 'text'}${param.unit ? `, unit: ${param.unit}` : ''})
-- Option being scored: "${option.name}"
-- Raw evidence the user wrote: ${score?.notes ? `"${score.notes}${param.unit ? ' ' + param.unit : ''}"` : '(none)'}
-- User's score: ${score?.value != null ? `${score.value} / 10` : '(unset)'}
-
-How the user scored peer options on this same consideration:
-${peers.length === 0 ? '(no peers scored yet)' : peers.map(p => `- "${p.name}": ${p.value != null ? p.value.toFixed(1) + '/10' : '—'}${p.raw ? `  (raw: "${p.raw}")` : ''}`).join('\n')}
-
-Respond in 3-5 short bullet points, conversational, second person. Focus on:
-1. Whether the score is internally consistent with the raw evidence.
-2. Whether the score is consistent with peer scores (e.g. if peer has worse raw but higher score, flag it).
-3. One concrete bias risk to consider.
-4. Suggest a tighter score range if you'd nudge it.
-
-Be direct, not soft. No preamble, no recap, no "great question". Use plain text, no markdown headers.`
-
-      const text = await askClaude(prompt)
+      const text = await askClaude(option.id, param.id)
       setResponse(text)
     } catch (e) {
       setError(e?.message || String(e))
@@ -1356,7 +1351,7 @@ Be direct, not soft. No preamble, no recap, no "great question". Use plain text,
   )
 }
 // Raw value on top, draggable slider for the rating, AI cross-check below.
-function Cell({ param, option, score, onUpdate, allOptions, allScores, parameters }) {
+function Cell({ param, option, score, onUpdate }) {
   return (
     <td style={{ padding: '10px 12px', minWidth: 210, verticalAlign: 'top' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1377,9 +1372,6 @@ function Cell({ param, option, score, onUpdate, allOptions, allScores, parameter
               param={param}
               option={option}
               score={score}
-              allOptions={allOptions}
-              allScores={allScores}
-              parameters={parameters}
             />
           </div>
         )}
@@ -1644,10 +1636,23 @@ function App() {
     applyAccent(a.hue)
   }, [])
 
+  // undefined while the stored session is being read, null when signed out
+  const [session, setSession] = useState(undefined)
+  const userId = session?.user?.id
+
   useEffect(() => {
     if (supabaseInitError) { setConfigError(true); setLoading(false); return }
-    loadDecisions()
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s))
+    return () => sub.subscription.unsubscribe()
   }, [])
+
+  // token refreshes keep the same user id, so this only runs on sign-in/out
+  useEffect(() => {
+    if (userId) { loadDecisions(); return }
+    setDecisions([]); setSelectedId(null); setMode(null)
+    patchData(() => ({ parameters: [], options: [], scores: [] }))
+  }, [userId])
 
   useEffect(() => {
     if (selectedId) loadDecisionDetail(selectedId)
@@ -1788,6 +1793,11 @@ function App() {
   function goHome() { setSelectedId(null); setMode(null); loadDecisions() }
   const selectedDecision = decisions.find(d => d.id === selectedId)
 
+  async function signOut() {
+    const { error } = await supabase.auth.signOut()
+    if (error) setSaveError(`Couldn't sign out: ${error.message}`)
+  }
+
   if (configError) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
@@ -1800,6 +1810,11 @@ function App() {
     )
   }
 
+  if (session === undefined) {
+    return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="label">loading…</span></div>
+  }
+  if (!session) return <SignIn />
+
   return (
     <div style={{ minHeight: '100vh' }}>
       <TopHeader
@@ -1809,6 +1824,8 @@ function App() {
         }
         onHome={goHome}
         onNew={createDecision}
+        email={session.user.email}
+        onSignOut={signOut}
       />
 
       {selectedId === null ? (
