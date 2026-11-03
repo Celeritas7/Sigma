@@ -9,6 +9,23 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
+<!-- GitHub Pages caches this page for 10 minutes, but each deploy renames the
+     built script and stylesheet. A browser holding the old page then asks for
+     files that no longer exist and shows nothing. If that happens, reload once
+     (a reload re-fetches the page itself from the server). The sessionStorage
+     flag stops a loop if the file really is missing. -->
+<script>
+  window.addEventListener('error', function (e) {
+    var t = e.target;
+    var url = t && (t.tagName === 'SCRIPT' ? t.src : t.tagName === 'LINK' ? t.href : '');
+    if (!url || !/\/assets\//.test(url)) return;
+    try {
+      if (sessionStorage.getItem('sigma-reloaded-for') === url) return;
+      sessionStorage.setItem('sigma-reloaded-for', url);
+    } catch (_) { return; }
+    location.reload();
+  }, true);
+</script>
 <!-- module scripts run after the page is parsed, so the broadcast script below is loaded first -->
 <script type="module" src="/src/main.jsx"></script>
 </head>
