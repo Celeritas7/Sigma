@@ -17,7 +17,7 @@
     --ink:      oklch(0.15 0.015 240);
     --ink-deep: oklch(0.19 0.03 265);
     --ink-soft: oklch(0.38 0.012 240);
-    --ink-faint:oklch(0.62 0.010 240);
+    --ink-faint:oklch(0.50 0.010 240);
     --ink-ghost:oklch(0.82 0.008 240);
     --rule:     oklch(0.90 0.006 240);
     --rule-soft:oklch(0.945 0.005 240);
@@ -25,10 +25,14 @@
     --accent-2:   oklch(0.62 0.15 175);
     --accent-soft:oklch(0.93 0.05 145);
     --accent-ink: oklch(0.32 0.13 145);
-    --neg:      oklch(0.62 0.18 30);
+    /* text-on-light versions of the accent / warn colours (>= 4.5:1 on every
+       background here); the plain tokens stay for fills, bars and buttons */
+    --accent-text: oklch(0.50 0.15 145);
+    --neg:      oklch(0.54 0.18 30);
     --neg-soft: oklch(0.96 0.04 30);
     --warn:     oklch(0.72 0.14 75);
     --warn-soft:oklch(0.96 0.05 75);
+    --warn-text:oklch(0.50 0.11 75);
     --hi:       oklch(0.5 0.16 260);
     --hi-soft:  oklch(0.94 0.04 260);
     --shadow-sm: 0 1px 2px oklch(0.4 0.05 265 / 0.05), 0 2px 6px oklch(0.4 0.05 265 / 0.05);
@@ -60,6 +64,10 @@
   button, input, select, textarea { font: inherit; color: inherit; }
   button { cursor: pointer; }
   input, textarea, select { background: transparent; outline: none; }
+  /* keyboard focus ring (mouse clicks on buttons don't show it) */
+  :focus-visible, input:focus, textarea:focus, select:focus { outline: 2px solid var(--hi); outline-offset: 2px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  .linklike { background: none; border: none; padding: 0; margin: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; }
   input::placeholder, textarea::placeholder { color: var(--ink-faint); }
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-thumb { background: var(--rule-soft); border-radius: 5px; }
@@ -267,6 +275,7 @@ function applyAccent(hue) {
   r.style.setProperty('--accent',      `oklch(0.58 0.16 ${hue})`)
   r.style.setProperty('--accent-soft', `oklch(0.93 0.05 ${hue})`)
   r.style.setProperty('--accent-ink',  `oklch(0.32 0.13 ${hue})`)
+  r.style.setProperty('--accent-text', `oklch(0.50 0.15 ${hue})`)
   // second gradient stop, 30° round the hue wheel (green 145 → teal 175)
   r.style.setProperty('--accent-2',    `oklch(0.62 0.15 ${(hue + 30) % 360})`)
 }
@@ -318,6 +327,42 @@ function useMedia(query) {
   return matches
 }
 
+// Arrow / Page / Home / End keys on a 0–10 slider in 0.5 steps.
+// Returns the new value, or undefined if the key isn't a slider key.
+function sliderKey(key, value) {
+  const v = value ?? 0
+  const step = { ArrowRight: 0.5, ArrowUp: 0.5, ArrowLeft: -0.5, ArrowDown: -0.5, PageUp: 2, PageDown: -2 }[key]
+  if (step != null) return Math.max(0, Math.min(10, Math.round((v + step) * 2) / 2))
+  if (key === 'Home') return 0
+  if (key === 'End') return 10
+}
+
+// Enter / Space on a non-button element that acts as one
+function onActivate(fn) {
+  return e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(e) } }
+}
+
+// Dialog focus: move focus into the dialog when it opens, keep Tab inside it,
+// and give focus back to whatever opened it when it closes.
+function useDialogFocus(ref) {
+  useEffect(() => {
+    const opener = document.activeElement
+    const el = ref.current
+    if (!el) return
+    const focusables = () => [...el.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(x => !x.disabled)
+    ;(focusables()[0] || el).focus()
+    const onKey = e => {
+      if (e.key !== 'Tab') return
+      const f = focusables(); if (!f.length) return
+      const first = f[0], last = f[f.length - 1]
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
+    el.addEventListener('keydown', onKey)
+    return () => { el.removeEventListener('keydown', onKey); opener?.focus?.() }
+  }, [])
+}
+
 // weights move in 0.5 steps: show 7 as "7" and 7.5 as "7.5", never rounded
 function fmtWeight(w) { return Number.isInteger(w) ? String(w) : w.toFixed(1) }
 
@@ -325,23 +370,25 @@ function Pill({ children, color, bg, style }) {
   const c = color || 'var(--ink)'
   return <span className="pill" style={{
     background: bg || `color-mix(in oklch, ${c} 14%, var(--bg))`,
-    color: c, ...style,
+    // text is the pill colour pulled 40% toward ink, so it stays readable on its tint
+    color: `color-mix(in oklch, ${c} 60%, var(--ink))`, ...style,
   }}>{children}</span>
 }
 
-function InlineText({ value, onCommit, placeholder, style, multiline }) {
+function InlineText({ value, onCommit, placeholder, style, multiline, label }) {
   const [draft, setDraft] = useState(value ?? '')
   const [editing, setEditing] = useState(false)
   useEffect(() => setDraft(value ?? ''), [value])
   if (!editing) {
-    return <span onClick={() => setEditing(true)} style={{
+    return <span role="button" tabIndex={0} aria-label={`${label || placeholder || 'text'}: ${value || 'empty'}. Edit`}
+      onClick={() => setEditing(true)} onKeyDown={onActivate(() => setEditing(true))} style={{
       cursor: 'text', display: 'inline-block', minHeight: '1em',
       color: value ? (style?.color || 'var(--ink)') : 'var(--ink-faint)',
       fontStyle: value ? 'normal' : 'italic', ...style,
     }}>{value || placeholder || '—'}</span>
   }
   const Tag = multiline ? 'textarea' : 'input'
-  return <Tag autoFocus value={draft}
+  return <Tag autoFocus value={draft} aria-label={label || placeholder}
     onChange={e => setDraft(e.target.value)}
     onBlur={() => { setEditing(false); if (draft !== value) onCommit(draft) }}
     onKeyDown={e => { if (e.key === 'Enter' && !multiline) e.target.blur(); if (e.key === 'Escape') { setDraft(value ?? ''); setEditing(false) }}}
@@ -356,7 +403,7 @@ function InlineText({ value, onCommit, placeholder, style, multiline }) {
   />
 }
 
-function WeightSlider({ value, original, onChange, hue, ghostMark, height = 22, thumbSize = 14 }) {
+function WeightSlider({ value, original, onChange, hue, ghostMark, height = 22, thumbSize = 14, label }) {
   const trackRef = useRef(null)
   const [dragging, setDragging] = useState(false)
   const color = hue != null ? `oklch(0.58 0.16 ${hue})` : 'var(--ink)'
@@ -376,9 +423,11 @@ function WeightSlider({ value, original, onChange, hue, ghostMark, height = 22, 
   }, [dragging, move])
   const showGhost = ghostMark && original != null && Math.abs(original - value) > 0.01
   return (
-    <div ref={trackRef}
+    <div ref={trackRef} role="slider" tabIndex={0} aria-label={label}
+      aria-valuemin={0} aria-valuemax={10} aria-valuenow={value} aria-valuetext={`weight ${fmtWeight(value)} of 10`}
+      onKeyDown={e => { const next = sliderKey(e.key, value); if (next !== undefined) { e.preventDefault(); onChange(next) } }}
       onPointerDown={e => { setDragging(true); move(e.clientX) }}
-      style={{ position: 'relative', height, cursor: 'pointer', touchAction: 'none', userSelect: 'none' }}>
+      style={{ position: 'relative', height, cursor: 'pointer', touchAction: 'none', userSelect: 'none', borderRadius: 4 }}>
       <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 3, marginTop: -1.5, background: 'var(--bg-inset)', border: '1px solid var(--rule)', borderRadius: 2 }} />
       <div style={{ position: 'absolute', top: '50%', left: 0, marginTop: -1.5, width: `${(value / 10) * 100}%`, height: 3, background: color, borderRadius: 2, transition: dragging ? 'none' : 'width 180ms' }} />
       {showGhost && <div style={{ position: 'absolute', top: 4, left: `calc(${(original / 10) * 100}% - 1px)`, width: 2, height: height - 8, background: 'var(--ink-faint)', opacity: 0.5 }} />}
@@ -407,12 +456,12 @@ function ScoreInput({ value, onChange, autoFocus }) {
   )
 }
 
-function RawInput({ value, onChange, unit, type, options }) {
+function RawInput({ value, onChange, unit, type, options, label }) {
   const [draft, setDraft] = useState(value ?? '')
   useEffect(() => setDraft(value ?? ''), [value])
   if (type === 'categorical' && options?.length) {
     return (
-      <select value={value ?? ''} onChange={e => onChange(e.target.value || null)}
+      <select value={value ?? ''} aria-label={label} onChange={e => onChange(e.target.value || null)}
         style={{ width: '100%', padding: '4px 6px', fontSize: 12, border: '1px solid var(--rule)', borderRadius: 4, background: 'var(--bg)', appearance: 'none', color: 'var(--ink)' }}>
         <option value="">—</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
@@ -421,7 +470,7 @@ function RawInput({ value, onChange, unit, type, options }) {
   }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-      <input type="text" value={draft} onChange={e => setDraft(e.target.value)}
+      <input type="text" value={draft} aria-label={label} onChange={e => setDraft(e.target.value)}
         onBlur={() => draft !== value && onChange(draft || null)}
         onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
         placeholder="raw evidence"
@@ -486,7 +535,7 @@ function SignIn() {
     if (error) { setError(error.message); setBusy(false) }
   }
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div className="card" style={{ width: 380, maxWidth: '100%', padding: '36px 32px', textAlign: 'center' }}>
         <div style={{ width: 52, height: 52, margin: '0 auto', background: 'linear-gradient(135deg, var(--accent), var(--accent-2))', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 28, borderRadius: 13, boxShadow: 'var(--shadow-sm)' }}>Σ</div>
         <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-0.02em', margin: '18px 0 6px' }}>Sigma</h1>
@@ -494,9 +543,9 @@ function SignIn() {
         <button className="btn btn-primary" onClick={signIn} disabled={busy} style={{ width: '100%', justifyContent: 'center' }}>
           {busy ? 'Opening Google…' : 'Continue with Google'}
         </button>
-        {error && <p style={{ fontSize: 13, color: 'var(--neg)', margin: '14px 0 0' }}>{error}</p>}
+        {error && <p role="alert" style={{ fontSize: 13, color: 'var(--neg)', margin: '14px 0 0' }}>{error}</p>}
       </div>
-    </div>
+    </main>
   )
 }
 
@@ -512,7 +561,7 @@ function AccentMenu() {
   }, [open])
   return (
     <div ref={rootRef} style={{ position: 'relative' }}>
-      <button onClick={() => setOpen(o => !o)} className="iconbtn" title="theme">
+      <button onClick={() => setOpen(o => !o)} className="iconbtn" title="theme" aria-label="Accent colour" aria-expanded={open}>
         <span style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--accent)' }} />
       </button>
       {open && (
@@ -525,7 +574,7 @@ function AccentMenu() {
           <div style={{ display: 'flex', gap: 6 }}>
             {ACCENT_OPTIONS.map(a => (
               <button key={a.name} onClick={() => { applyAccent(a.hue); localStorage.setItem('sigma_accent', a.name); setOpen(false) }}
-                style={{ width: 26, height: 26, borderRadius: 6, border: cur === a.name ? '2px solid var(--ink)' : '1px solid var(--rule)', background: `oklch(0.58 0.16 ${a.hue})`, cursor: 'pointer' }} title={a.name} />
+                style={{ width: 26, height: 26, borderRadius: 6, border: cur === a.name ? '2px solid var(--ink)' : '1px solid var(--rule)', background: `oklch(0.58 0.16 ${a.hue})`, cursor: 'pointer' }} title={a.name} aria-label={`${a.name} accent`} aria-pressed={cur === a.name} />
             ))}
           </div>
         </div>
@@ -631,13 +680,14 @@ function HomeRow({ d, idx, onClick, onDelete, onReopen }) {
   const statusLabel = closed ? 'closed' : c.pct >= 0.7 ? 'ready to choose' : c.pct >= 0.35 ? 'still gathering' : 'just started'
   const kc = kindColor(d.type)
   const statusColor = closed ? 'var(--ink-faint)' : c.pct >= 0.7 ? 'var(--accent)' : c.pct >= 0.35 ? 'var(--warn)' : 'var(--ink-ghost)'
+  const statusText = closed ? 'var(--ink-faint)' : c.pct >= 0.7 ? 'var(--accent-text)' : c.pct >= 0.35 ? 'var(--warn-text)' : 'var(--ink-faint)'
 
   const title = (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', minWidth: 0, flex: 1 }}>
       <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, background: kindSoft(d.type), border: `1px solid ${kc}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, marginTop: 1 }}>{kindEmoji(d.type)}</div>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 15, fontWeight: 500 }}>{d.title?.trim() || <em style={{ color: 'var(--ink-faint)' }}>untitled question</em>}</span>
+          <button className="linklike" onClick={e => { e.stopPropagation(); onClick() }} style={{ fontSize: 15, fontWeight: 500 }}>{d.title?.trim() || <em style={{ color: 'var(--ink-faint)' }}>untitled question</em>}</button>
           {!closed && (tied ? <Pill color="var(--neg)">tied</Pill> : gap != null && gap < 0.6 && <Pill color="var(--neg)">tight</Pill>)}
           {c.pct === 0 && <Pill color="var(--ink-faint)">empty</Pill>}
         </div>
@@ -653,7 +703,7 @@ function HomeRow({ d, idx, onClick, onDelete, onReopen }) {
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         {narrow && <span className="label">{closed ? 'picked' : 'leading'}</span>}
         <span style={{ fontSize: 14, fontWeight: 500 }}>{tied ? `${leading.name || 'unnamed'} = ${ranked[1].name || 'unnamed'}` : (leading.name || 'unnamed')}</span>
-        <span className="mono" style={{ fontSize: 13, color: tied ? 'var(--ink-soft)' : 'var(--accent)' }}>{leading._total.toFixed(2)}</span>
+        <span className="mono" style={{ fontSize: 13, color: tied ? 'var(--ink-soft)' : 'var(--accent-text)' }}>{leading._total.toFixed(2)}</span>
       </div>
       {gap != null && !narrow && <span className="label" style={{ marginTop: 4, display: 'block' }}>{tied ? 'tied' : `+${gap.toFixed(2)} ahead`}</span>}
     </div>
@@ -666,7 +716,7 @@ function HomeRow({ d, idx, onClick, onDelete, onReopen }) {
         </div>
         <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', minWidth: 32, textAlign: 'right' }}>{Math.round(c.pct * 100)}%</span>
       </div>
-      <span className="label" style={{ marginTop: 6, display: 'block', color: statusColor }}>{statusLabel}</span>
+      <span className="label" style={{ marginTop: 6, display: 'block', color: statusText }}>{statusLabel}</span>
     </div>
   )
   // touch screens can't hover, so their row action is always shown
@@ -674,7 +724,7 @@ function HomeRow({ d, idx, onClick, onDelete, onReopen }) {
     ? <button className="btn btn-ghost btn-sm" onClick={e => { e.stopPropagation(); onReopen() }}>Reopen</button>
     : <button className="iconbtn" title="archive decision" aria-label="archive decision" style={{ color: 'var(--neg)' }} onClick={e => { e.stopPropagation(); if (confirm(`Archive "${d.title || 'untitled'}"?`)) onDelete() }}>×</button>
   const age = <span className="mono" style={{ fontSize: 11, color: 'var(--ink-faint)' }}>{daysOpen}d</span>
-  const rowStyle = { borderBottom: '1px solid var(--rule-soft)', cursor: 'pointer', opacity: closed ? 0.75 : 1, background: hover ? kindSoft(d.type) : 'transparent', boxShadow: hover ? `inset 3px 0 0 ${kc}` : 'inset 0 0 0 transparent', transition: 'background 140ms, box-shadow 140ms' }
+  const rowStyle = { borderBottom: '1px solid var(--rule-soft)', cursor: 'pointer', background: hover ? kindSoft(d.type) : 'transparent', boxShadow: hover ? `inset 3px 0 0 ${kc}` : 'inset 0 0 0 transparent', transition: 'background 140ms, box-shadow 140ms' }
 
   if (narrow) {
     return (
@@ -701,14 +751,14 @@ function HomeRow({ d, idx, onClick, onDelete, onReopen }) {
 }
 
 // ── Weight editor: roomy panel with steppers + sliders + full labels ────────
-function WeightStep({ value, onChange, color }) {
+function WeightStep({ value, onChange, color, label }) {
   const set = d => onChange(Math.max(0, Math.min(10, Math.round((value + d) * 2) / 2)))
   const btn = { width: 26, height: 26, borderRadius: 7, border: '1px solid var(--rule)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, lineHeight: 1, color: 'var(--ink)', boxShadow: 'var(--shadow-sm)' }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-      <button style={btn} onClick={() => set(-1)} title="−1">−</button>
+      <button style={btn} onClick={() => set(-1)} title="−1" aria-label={`decrease ${label}`}>−</button>
       <span className="mono" style={{ minWidth: 22, textAlign: 'center', fontSize: 16, fontWeight: 600, color }}>{fmtWeight(value)}</span>
-      <button style={btn} onClick={() => set(1)} title="+1">+</button>
+      <button style={btn} onClick={() => set(1)} title="+1" aria-label={`increase ${label}`}>+</button>
     </div>
   )
 }
@@ -799,9 +849,9 @@ function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHu
                     <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.25 }}>{pp.name}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <WeightStep value={cur} color={over ? 'var(--hi)' : c} onChange={v => setW(pp, v)} />
+                    <WeightStep value={cur} color={over ? 'var(--hi)' : c} onChange={v => setW(pp, v)} label={`${pp.name} weight`} />
                     <div style={{ flex: 1 }}>
-                      <WeightSlider value={cur} original={Number(pp.weight)} ghostMark={isWhatIf} hue={over ? 260 : paramHues[i % paramHues.length]} onChange={v => setW(pp, v)} />
+                      <WeightSlider label={`${pp.name} weight`} value={cur} original={Number(pp.weight)} ghostMark={isWhatIf} hue={over ? 260 : paramHues[i % paramHues.length]} onChange={v => setW(pp, v)} />
                     </div>
                   </div>
                 </div>
@@ -823,10 +873,15 @@ function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHu
                   style={{ display: 'grid', gridTemplateColumns: narrow ? '104px 1fr' : '152px 1fr', alignItems: 'stretch', border: `1px ${target ? 'dashed' : 'solid'} ${active || target ? `oklch(0.6 0.15 ${t.hue})` : 'var(--rule)'}`, borderRadius: 11, background: active ? `oklch(0.975 0.04 ${t.hue})` : 'var(--bg)', cursor: target ? 'pointer' : undefined, transition: 'border-color 120ms, background 120ms', minHeight: 52, overflow: 'hidden' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, padding: narrow ? '10px 10px' : '10px 14px', borderRight: '1px solid var(--rule-soft)', background: `oklch(0.97 0.055 ${t.hue})` }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: `oklch(0.42 0.13 ${t.hue})` }}>{t.label}</span>
-                    <span className="label" style={{ color: `oklch(0.52 0.1 ${t.hue})` }}>weight {t.range}</span>
+                    <span className="label" style={{ color: `oklch(0.45 0.1 ${t.hue})` }}>weight {t.range}</span>
+                    {target && (
+                      <button className="btn btn-outline btn-sm" style={{ marginTop: 6, padding: '3px 8px', alignSelf: 'flex-start' }}
+                        aria-label={`Move ${parameters.find(p => p.id === picked)?.name} to ${t.label}`}
+                        onClick={e => { e.stopPropagation(); moveTo(picked, t); setPicked(null) }}>Move here</button>
+                    )}
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, alignItems: 'center', padding: '8px 12px' }}>
-                    {chips.length === 0 && <span className="label" style={{ opacity: target ? 0.9 : 0.45 }}>{active ? 'release to drop' : target ? 'tap to move here' : 'drop here'}</span>}
+                    {chips.length === 0 && <span className="label">{active ? 'release to drop' : target ? 'tap to move here' : 'drop here'}</span>}
                     {chips.map(pp => {
                       const c = paramColors[pp.id]; const over = isOver(pp)
                       return (
@@ -834,13 +889,15 @@ function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHu
                           onDragStart={e => { setDragId(pp.id); e.dataTransfer.setData('text/plain', pp.id); e.dataTransfer.effectAllowed = 'move' }}
                           onDragEnd={() => { setDragId(null); setOverLane(null) }}
                           onClick={e => { e.stopPropagation(); setPicked(id => id === pp.id ? null : pp.id) }}
-                          aria-pressed={picked === pp.id}
+                          role="button" tabIndex={0} aria-pressed={picked === pp.id}
+                          onKeyDown={onActivate(e => { e.stopPropagation(); setPicked(id => id === pp.id ? null : pp.id) })}
                           onMouseEnter={() => setHighlight(pp.id)} onMouseLeave={() => setHighlight(null)}
                           style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 9, background: picked === pp.id ? `color-mix(in oklch, ${c} 14%, var(--bg))` : 'var(--bg)', border: `1px solid ${picked === pp.id ? c : over ? 'var(--hi)' : (highlight === pp.id ? c : 'var(--rule)')}`, boxShadow: picked === pp.id ? `0 0 0 3px color-mix(in oklch, ${c} 30%, transparent)` : 'var(--shadow-sm)', cursor: 'grab', opacity: dragId === pp.id ? 0.35 : 1, transition: 'opacity 120ms' }}>
                           <span style={{ width: 9, height: 9, borderRadius: 3, background: c, flexShrink: 0 }} />
                           <span style={{ fontSize: 13, fontWeight: 500 }}>{pp.name}</span>
                           <span className="mono" title={over ? `was ${fmtWeight(Number(pp.weight))}` : undefined} style={{ fontSize: 12, fontWeight: 600, color: over ? 'var(--hi)' : 'var(--ink-soft)' }}>{fmtWeight(curW(pp))}</span>
-                          <span style={{ fontSize: 13, color: 'var(--ink-ghost)', letterSpacing: '-2px', marginLeft: 2 }}>⠿</span>
+                          <span className="sr-only">, {t.label}. {picked === pp.id ? 'Picked: choose a lane' : 'Pick to move'}</span>
+                          <span aria-hidden="true" style={{ fontSize: 13, color: 'var(--ink-ghost)', letterSpacing: '-2px', marginLeft: 2 }}>⠿</span>
                         </div>
                       )
                     })}
@@ -899,7 +956,7 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 52, height: 52, flexShrink: 0, borderRadius: 13, background: kindSoft(decision.type), border: `1px solid ${kindColor(decision.type)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, boxShadow: 'var(--shadow-sm)' }}>{kindEmoji(decision.type)}</div>
               <h1 style={{ margin: 0, fontSize: 'clamp(24px, 3vw, 38px)', fontWeight: 500, letterSpacing: '-0.02em' }}>
-                <InlineText value={decision.title} onCommit={onTitleUpdate} placeholder="What are you deciding?" />
+                <InlineText value={decision.title} onCommit={onTitleUpdate} placeholder="What are you deciding?" label="Decision title" />
               </h1>
             </div>
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1007,10 +1064,10 @@ function EmptyState({ onAddParam, onAddOption }) {
         Empty matrix. Add <strong>parameters</strong> (what matters to you) and <strong>options</strong> (what you're comparing).
       </p>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <input value={pDraft} onChange={e => setPDraft(e.target.value)} placeholder="+ first parameter…"
+        <input value={pDraft} onChange={e => setPDraft(e.target.value)} placeholder="+ first parameter…" aria-label="First consideration"
           onKeyDown={e => { if (e.key === 'Enter' && pDraft.trim()) { onAddParam(pDraft.trim()); setPDraft('') }}}
           style={{ padding: '8px 12px', border: '1px solid var(--rule)', borderRadius: 6, fontSize: 13, minWidth: 200, color: 'var(--ink)' }} />
-        <input value={oDraft} onChange={e => setODraft(e.target.value)} placeholder="+ first option…"
+        <input value={oDraft} onChange={e => setODraft(e.target.value)} placeholder="+ first option…" aria-label="First option"
           onKeyDown={e => { if (e.key === 'Enter' && oDraft.trim()) { onAddOption(oDraft.trim()); setODraft('') }}}
           style={{ padding: '8px 12px', border: '1px solid var(--rule)', borderRadius: 6, fontSize: 13, minWidth: 200, color: 'var(--ink)' }} />
       </div>
@@ -1066,12 +1123,12 @@ function LeaderRow({ option, rank, parameters, scores, paramColors, optColor, le
         background: isTop ? (isWhatIf ? 'linear-gradient(90deg, var(--hi-soft), transparent 70%)' : 'linear-gradient(90deg, var(--accent-soft), transparent 70%)') : (hover ? 'var(--bg-soft)' : 'transparent'),
         boxShadow: isTop ? `inset 4px 0 0 ${isWhatIf ? 'var(--hi)' : 'var(--accent)'}` : (pulse ? `inset 3px 0 0 ${optColor}` : 'inset 0 0 0 transparent'),
         transition: 'background 150ms, box-shadow 500ms' }}>
-      <span className="mono" style={{ fontSize: narrow ? 16 : 22, fontWeight: 600, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent)') : 'var(--ink-faint)' }}>{option._ranked ? String(rank + 1).padStart(2, '0') : '––'}</span>
+      <span className="mono" style={{ fontSize: narrow ? 16 : 22, fontWeight: 600, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent-text)') : 'var(--ink-faint)' }}>{option._ranked ? String(rank + 1).padStart(2, '0') : '––'}</span>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
           <span style={{ width: 9, height: 9, borderRadius: '50%', background: optColor, alignSelf: 'center', flexShrink: 0 }} />
           <span style={{ fontSize: 16, fontWeight: 500 }}>
-            <InlineText value={option.name} onCommit={onRename} placeholder="option" style={{ fontSize: 16, fontWeight: 500 }} />
+            <InlineText value={option.name} onCommit={onRename} placeholder="option" label="Option name" style={{ fontSize: 16, fontWeight: 500 }} />
           </span>
           {isTop && <Pill color={isWhatIf ? 'var(--hi)' : 'var(--accent)'}>leading</Pill>}
           {option._ranked && shift > 0 && <Pill color="var(--accent)">↑{shift}</Pill>}
@@ -1091,7 +1148,7 @@ function LeaderRow({ option, rank, parameters, scores, paramColors, optColor, le
         </div>
       </div>
       <div style={{ textAlign: 'right' }}>
-        <span className="mono" style={{ fontSize: narrow ? 20 : 26, fontWeight: 500, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent)') : option._ranked ? 'var(--ink)' : 'var(--ink-faint)', transition: 'color 200ms' }}>
+        <span className="mono" style={{ fontSize: narrow ? 20 : 26, fontWeight: 500, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent-text)') : option._ranked ? 'var(--ink)' : 'var(--ink-faint)', transition: 'color 200ms' }}>
           {option._total != null ? option._total.toFixed(2) : '—'}
         </span>
         <div style={{ marginTop: 2 }}><span className="label">{option._ranked || option._total == null ? 'of 10' : 'not ranked'}</span></div>
@@ -1111,9 +1168,9 @@ function Legend({ parameters, paramColors, highlight, onHighlight, overrides }) 
         return (
           <button key={pp.id} onMouseEnter={() => onHighlight(pp.id)} onMouseLeave={() => onHighlight(null)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', padding: 0,
-              opacity: highlight == null || highlight === pp.id ? 1 : 0.35, transition: 'opacity 150ms' }}>
-            <span style={{ width: 10, height: 10, borderRadius: 2, background: paramColors[pp.id] }} />
-            <span style={{ fontSize: 11, color: 'var(--ink-soft)' }}>{pp.name}</span>
+              }}>
+            <span style={{ width: 10, height: 10, borderRadius: 2, background: paramColors[pp.id], opacity: highlight == null || highlight === pp.id ? 1 : 0.3, transition: 'opacity 150ms' }} />
+            <span style={{ fontSize: 11, color: highlight == null || highlight === pp.id ? 'var(--ink-soft)' : 'var(--ink-faint)' }}>{pp.name}</span>
             <span className="mono" style={{ fontSize: 10, color: 'var(--ink-faint)' }}>w{fmtWeight(cur)}</span>
           </button>
         )
@@ -1131,7 +1188,7 @@ function AddOptionRow({ onAdd }) {
       <span className="label">+</span>
       <input value={draft} onChange={e => setDraft(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') commit() }} onBlur={commit}
-        placeholder="add an option to compare…"
+        placeholder="add an option to compare…" aria-label="Add an option"
         style={{ border: 'none', padding: 0, fontSize: 14, color: 'var(--ink)', width: '100%' }} />
       <span className="label">enter</span><span />
     </div>
@@ -1154,7 +1211,7 @@ function Matrix({ parameters, options, scores, paramColors, optColors, highlight
             <th key={o.id} style={{ padding: '12px 12px', textAlign: 'left', minWidth: 160, borderTop: `2px solid ${optColors[o.id]}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 500 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: optColors[o.id], flexShrink: 0 }} />
-                <InlineText value={o.name} onCommit={v => optionHandlers.onUpdate(o.id, { name: v })} placeholder="option" style={{ fontSize: 13, fontWeight: 500 }} />
+                <InlineText value={o.name} onCommit={v => optionHandlers.onUpdate(o.id, { name: v })} placeholder="option" label="Option name" style={{ fontSize: 13, fontWeight: 500 }} />
               </div>
             </th>
           ))}
@@ -1175,6 +1232,7 @@ function Matrix({ parameters, options, scores, paramColors, optColors, highlight
                   const w = over ? overrides[pp.id] : Number(pp.weight)
                   return (
                     <button onClick={onEditWeights} title={over ? `unsaved (was ${fmtWeight(Number(pp.weight))}) · edit in Weights` : 'edit in Weights'}
+                      aria-label={`${pp.name} weight ${fmtWeight(w)}${over ? ', unsaved' : ''}. Edit in Weights`}
                       className="mono" style={{ minWidth: 40, padding: '3px 8px', fontSize: 13, fontWeight: 600, textAlign: 'center', border: `1px solid ${over ? 'var(--hi)' : 'var(--rule)'}`, borderRadius: 6, background: over ? 'var(--hi-soft)' : 'var(--bg)', color: over ? 'var(--hi)' : 'var(--ink)' }}>
                       {fmtWeight(w)}
                     </button>
@@ -1195,7 +1253,7 @@ function Matrix({ parameters, options, scores, paramColors, optColors, highlight
               <span className="label">+</span>
               <input value={addParamDraft} onChange={e => setAddParamDraft(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && addParamDraft.trim()) { paramHandlers.onAdd(addParamDraft.trim()); setAddParamDraft('') }}}
-                placeholder="add a consideration…"
+                placeholder="add a consideration…" aria-label="Add a consideration"
                 style={{ border: 'none', padding: 0, fontSize: 14, color: 'var(--ink)', flex: 1 }} />
               <span className="label">enter</span>
             </div>
@@ -1214,17 +1272,18 @@ function ParameterRow({ parameter, color, onUpdate, onDelete }) {
       <span style={{ width: 4, height: 20, background: color, borderRadius: 1, flexShrink: 0, marginTop: 2 }} />
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 13, fontWeight: 500 }}>
-          <InlineText value={parameter.name} onCommit={v => onUpdate({ name: v })} placeholder="parameter" style={{ fontSize: 13, fontWeight: 500 }} />
+          <InlineText value={parameter.name} onCommit={v => onUpdate({ name: v })} placeholder="parameter" label="Consideration name" style={{ fontSize: 13, fontWeight: 500 }} />
         </div>
-        <button onClick={() => setShowType(s => !s)} className="label" style={{ background: 'none', border: 'none', padding: '2px 0', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ opacity: 0.6 }}>{showType ? '▾' : '▸'}</span>
+        <button onClick={() => setShowType(s => !s)} aria-expanded={showType} className="label" style={{ background: 'none', border: 'none', padding: '2px 0', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <span aria-hidden="true" style={{ opacity: 0.6 }}>{showType ? '▾' : '▸'}</span>
+          <span className="sr-only">{parameter.name} type: </span>
           {parameter.input_type || 'text'}{parameter.unit ? ` · ${parameter.unit}` : ''}{parameter.input_type === 'categorical' ? ` · ${options.length} opts` : ''}
         </button>
         {showType && (
           <div style={{ marginTop: 8, padding: 10, background: 'var(--bg-inset)', borderRadius: 4 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               <span className="label" style={{ fontSize: 9 }}>type</span>
-              <select value={parameter.input_type || 'text'} onChange={e => {
+              <select value={parameter.input_type || 'text'} aria-label={`${parameter.name} input type`} onChange={e => {
                 const t = e.target.value
                 const u = { input_type: t }
                 if (t !== 'number') u.unit = null
@@ -1241,7 +1300,7 @@ function ParameterRow({ parameter, color, onUpdate, onDelete }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                 <span className="label" style={{ fontSize: 9 }}>unit</span>
                 <input value={parameter.unit || ''} onChange={e => onUpdate({ unit: e.target.value })}
-                  placeholder="e.g. 万円, %, h"
+                  placeholder="e.g. 万円, %, h" aria-label={`${parameter.name} unit`}
                   style={{ fontSize: 11, border: '1px solid var(--rule)', borderRadius: 3, padding: '2px 4px', color: 'var(--ink)' }} />
               </div>
             )}
@@ -1250,9 +1309,9 @@ function ParameterRow({ parameter, color, onUpdate, onDelete }) {
                 <div className="label" style={{ fontSize: 9, marginBottom: 4 }}>options</div>
                 {options.map((opt, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
-                    <input value={opt} onChange={e => { const n = [...options]; n[i] = e.target.value; onUpdate({ options: n }) }}
+                    <input value={opt} aria-label={`choice ${i + 1}`} onChange={e => { const n = [...options]; n[i] = e.target.value; onUpdate({ options: n }) }}
                       style={{ flex: 1, fontSize: 11, border: '1px solid var(--rule)', borderRadius: 3, padding: '2px 4px', color: 'var(--ink)' }} />
-                    <button onClick={() => onUpdate({ options: options.filter((_, j) => j !== i) })} className="iconbtn" style={{ width: 20, height: 20, fontSize: 11 }}>×</button>
+                    <button onClick={() => onUpdate({ options: options.filter((_, j) => j !== i) })} aria-label={`remove choice ${i + 1}`} className="iconbtn" style={{ width: 20, height: 20, fontSize: 11 }}>×</button>
                   </div>
                 ))}
                 <button className="label" onClick={() => onUpdate({ options: [...options, ''] })} style={{ background: 'none', border: 'none', padding: 0 }}>+ add option</button>
@@ -1270,7 +1329,7 @@ function ParameterRow({ parameter, color, onUpdate, onDelete }) {
 // to fit inside a matrix cell.
 // While dragging, the value lives in local state; it's saved once on release,
 // not on every pointer move (each change is a database write).
-function ScoreSlider({ value, onChange }) {
+function ScoreSlider({ value, onChange, label }) {
   const trackRef = useRef(null)
   const [draft, setDraft] = useState(null)
   const draftRef = useRef(null)
@@ -1297,9 +1356,28 @@ function ScoreSlider({ value, onChange }) {
     window.addEventListener('pointercancel', u)
     return () => { window.removeEventListener('pointermove', m); window.removeEventListener('pointerup', u); window.removeEventListener('pointercancel', u) }
   }, [dragging, value, onChange])
+  // keyboard: holding an arrow key repeats keydown; save once on keyup
+  const commitKey = () => {
+    const next = draftRef.current
+    if (next == null) return
+    draftRef.current = null
+    setDraft(null)
+    if (next !== value) onChange(next)
+  }
+  const onKeyDown = e => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && value != null) { e.preventDefault(); onChange(null); return }
+    if (e.key === 'Escape' && draftRef.current != null) { draftRef.current = null; setDraft(null); return }
+    const next = sliderKey(e.key, draftRef.current ?? value)
+    if (next === undefined) return
+    e.preventDefault()
+    draftRef.current = next
+    setDraft(next)
+  }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div ref={trackRef}
+      <div ref={trackRef} role="slider" tabIndex={0} aria-label={label}
+        aria-valuemin={0} aria-valuemax={10} aria-valuenow={v ?? undefined} aria-valuetext={v == null ? 'not scored' : `${v} out of 10`}
+        onKeyDown={onKeyDown} onKeyUp={commitKey} onBlur={commitKey}
         onPointerDown={e => move(e.clientX)}
         style={{ position: 'relative', flex: 1, height: 22, cursor: 'pointer', touchAction: 'none', userSelect: 'none' }}>
         {/* track */}
@@ -1320,12 +1398,12 @@ function ScoreSlider({ value, onChange }) {
           <div style={{ position: 'absolute', top: 4, left: -7, width: 14, height: 14, background: 'transparent', border: '2px dashed var(--ink-ghost)', borderRadius: '50%' }} />
         )}
       </div>
-      <span className="mono" style={{ fontSize: 12, color: v != null ? 'var(--accent)' : 'var(--ink-faint)', minWidth: 26, textAlign: 'right', fontWeight: 500 }}>
+      <span className="mono" style={{ fontSize: 12, color: v != null ? 'var(--accent-text)' : 'var(--ink-faint)', minWidth: 26, textAlign: 'right', fontWeight: 500 }}>
         {v != null ? v.toFixed(1) : '—'}
       </span>
       {v != null && (
-        <button onClick={() => onChange(null)} title="clear"
-          style={{ background: 'transparent', border: 'none', color: 'var(--ink-ghost)', padding: 0, width: 14, height: 14, fontSize: 11, lineHeight: 1 }}>×</button>
+        <button onClick={() => onChange(null)} title="clear" aria-label={`clear ${label || 'score'}`}
+          style={{ background: 'transparent', border: 'none', color: 'var(--ink-faint)', padding: 0, width: 14, height: 14, fontSize: 11, lineHeight: 1 }}>×</button>
       )}
     </div>
   )
@@ -1371,7 +1449,7 @@ function CrossCheck({ param, option, score }) {
 
   return (
     <div style={{ position: 'relative' }}>
-      <button ref={btnRef} onClick={() => {
+      <button ref={btnRef} aria-expanded={open} aria-label={`cross-check ${param.name} score for ${option.name}`} onClick={() => {
           const next = !open
           if (next && btnRef.current) {
             const r = btnRef.current.getBoundingClientRect()
@@ -1389,10 +1467,12 @@ function CrossCheck({ param, option, score }) {
           letterSpacing: '0.04em', textTransform: 'uppercase',
           opacity: score?.value == null ? 0.3 : 1,
         }}>
-        <span style={{ fontSize: 9 }}>◇</span> cross-check
+        <span style={{ fontSize: 9 }} aria-hidden="true">◇</span> cross-check
       </button>
       {open && (
-        <div style={{
+        <div role="dialog" aria-label={`Cross-check: ${param.name}`} aria-live="polite"
+          onKeyDown={e => { if (e.key === 'Escape') { setOpen(false); btnRef.current?.focus() } }}
+          style={{
           position: 'fixed', top: pos.top, left: pos.left, zIndex: 60,
           width: 320, padding: '14px 16px',
           background: 'var(--bg)', border: '1px solid var(--hi)', borderRadius: 6,
@@ -1401,7 +1481,7 @@ function CrossCheck({ param, option, score }) {
         onClick={e => e.stopPropagation()}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <Pill color="var(--hi)">cross-check · {param.name}</Pill>
-            <button onClick={() => setOpen(false)} className="iconbtn" style={{ width: 20, height: 20, fontSize: 12 }}>×</button>
+            <button onClick={() => setOpen(false)} className="iconbtn" aria-label="Close cross-check" style={{ width: 20, height: 20, fontSize: 12 }}>×</button>
           </div>
           {loading && <div style={{ fontSize: 12, color: 'var(--ink-soft)', fontStyle: 'italic' }}>thinking…</div>}
           {error && <div style={{ fontSize: 12, color: 'var(--neg)' }}>{error}</div>}
@@ -1425,6 +1505,7 @@ function Cell({ param, option, score, onUpdate }) {
     <td style={{ padding: '10px 12px', minWidth: 210, verticalAlign: 'top' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <RawInput
+          label={`${param.name} evidence for ${option.name}`}
           value={score?.notes}
           unit={param.unit}
           type={param.input_type}
@@ -1432,6 +1513,7 @@ function Cell({ param, option, score, onUpdate }) {
           onChange={v => onUpdate({ notes: v })}
         />
         <ScoreSlider
+          label={`${param.name} score for ${option.name}`}
           value={score?.value != null ? Number(score.value) : null}
           onChange={v => onUpdate({ value: v })}
         />
@@ -1462,16 +1544,18 @@ function WhatIfOverlay({ data, onClose }) {
     const k = e => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k)
   }, [onClose])
+  const dialogRef = useRef(null)
+  useDialogFocus(dialogRef)
 
   return (
     <div className="overlay-bg" onClick={onClose}>
-      <div className="overlay-card" onClick={e => e.stopPropagation()} style={{ width: 1080, maxWidth: '95vw' }}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="whatif-title" className="overlay-card" onClick={e => e.stopPropagation()} style={{ width: 1080, maxWidth: '95vw' }}>
         <div style={{ padding: '24px 32px 18px', borderBottom: '1px solid var(--rule)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 1 }}>
           <div>
             <span className="label">what-if · sensitivity</span>
-            <h2 style={{ margin: '6px 0 0', fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em' }}>Is the answer robust to how you weighted things?</h2>
+            <h2 id="whatif-title" style={{ margin: '6px 0 0', fontSize: 26, fontWeight: 500, letterSpacing: '-0.02em' }}>Is the answer robust to how you weighted things?</h2>
           </div>
-          <button className="iconbtn" onClick={onClose}>×</button>
+          <button className="iconbtn" onClick={onClose} aria-label="Close">×</button>
         </div>
         <div style={{ padding: '24px 32px 40px' }}>
           {robust == null && (
@@ -1544,11 +1628,13 @@ function BlindOverlay({ data, onScoreUpdate, onClose }) {
     const k = e => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k)
   }, [onClose])
+  const dialogRef = useRef(null)
+  useDialogFocus(dialogRef)
 
   if (!param) {
     return (
       <div className="overlay-bg" onClick={onClose}>
-        <div className="overlay-card" onClick={e => e.stopPropagation()} style={{ width: 520, padding: 40, textAlign: 'center' }}>
+        <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Blind score mode" className="overlay-card" onClick={e => e.stopPropagation()} style={{ width: 520, padding: 40, textAlign: 'center' }}>
           <span className="label">no parameters yet</span>
           <p style={{ marginTop: 12, fontSize: 14, color: 'var(--ink-soft)' }}>Add some considerations first.</p>
           <button className="btn btn-primary" onClick={onClose} style={{ marginTop: 18 }}>OK</button>
@@ -1560,7 +1646,7 @@ function BlindOverlay({ data, onScoreUpdate, onClose }) {
 
   return (
     <div className="overlay-bg" onClick={onClose}>
-      <div className="overlay-card" onClick={e => e.stopPropagation()} style={{ width: 840, maxWidth: '95vw' }}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="blind-title" className="overlay-card" onClick={e => e.stopPropagation()} style={{ width: 840, maxWidth: '95vw' }}>
         <div style={{ padding: '20px 32px 16px', borderBottom: '1px solid var(--rule)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--bg)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Pill color="var(--hi)">blind mode</Pill>
@@ -1569,11 +1655,11 @@ function BlindOverlay({ data, onScoreUpdate, onClose }) {
               {params.map((_, i) => <div key={i} style={{ width: 20, height: 3, background: i <= paramIdx ? 'var(--accent)' : 'var(--rule)', borderRadius: 1 }} />)}
             </div>
           </div>
-          <button className="iconbtn" onClick={onClose}>×</button>
+          <button className="iconbtn" onClick={onClose} aria-label="Close">×</button>
         </div>
         <div style={{ padding: '28px 32px 40px' }}>
           <span className="label" style={{ color: 'var(--hi)' }}>anti-bias · halo-effect killer</span>
-          <h2 style={{ margin: '8px 0 6px', fontSize: 26, fontWeight: 500, letterSpacing: '-0.01em' }}>Score {param.name} across all options. Names hidden.</h2>
+          <h2 id="blind-title" style={{ margin: '8px 0 6px', fontSize: 26, fontWeight: 500, letterSpacing: '-0.01em' }}>Score {param.name} across all options. Names hidden.</h2>
           <p style={{ margin: '0 0 24px', fontSize: 13, lineHeight: 1.6, color: 'var(--ink-soft)', maxWidth: 580 }}>
             Score this one thing for every option at once. Names are hidden — only raw evidence is shown. Reveal at the end: do your scores match your gut?
           </p>
@@ -1627,8 +1713,8 @@ function BlindCard({ letter, option, score, param, revealed, passValue, onScore,
         <span className="label">{revealed ? option.name : 'option ' + letter}</span>
         <div style={{ marginTop: 4 }}>
           {editingRaw
-            ? <RawInput value={score?.notes} unit={param.unit} type={param.input_type} options={param.options} onChange={v => { onRaw(v); setEditingRaw(false) }} />
-            : <div onClick={() => setEditingRaw(true)} style={{ fontSize: 16, fontStyle: hasRaw ? 'italic' : 'normal', cursor: 'text', minHeight: 22 }}>
+            ? <RawInput label={`evidence for option ${letter}`} value={score?.notes} unit={param.unit} type={param.input_type} options={param.options} onChange={v => { onRaw(v); setEditingRaw(false) }} />
+            : <div role="button" tabIndex={0} onClick={() => setEditingRaw(true)} onKeyDown={onActivate(() => setEditingRaw(true))} style={{ fontSize: 16, fontStyle: hasRaw ? 'italic' : 'normal', cursor: 'text', minHeight: 22 }}>
                 {hasRaw ? `"${score.notes}${param.unit ? ' ' + param.unit : ''}"` : <span style={{ color: 'var(--ink-faint)' }}>+ add evidence</span>}
               </div>
           }
@@ -1871,7 +1957,7 @@ function App() {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32 }}>
         <div style={{ maxWidth: 480 }}>
-          <div style={{ fontSize: 40, color: 'var(--accent)' }}>Σ</div>
+          <div style={{ fontSize: 40, color: 'var(--accent-text)' }}>Σ</div>
           <p className="label">configuration required</p>
           <p style={{ fontSize: 14, lineHeight: 1.6 }}>Supabase config error: {supabaseInitError}</p>
         </div>
