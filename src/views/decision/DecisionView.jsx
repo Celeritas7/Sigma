@@ -6,11 +6,12 @@ import { NARROW, useMedia } from '../../lib/ui'
 import { Matrix } from './Matrix'
 import { AddOptionRow, Legend, StandingsList } from './Standings'
 import { WeightPanel } from './Weights'
+import { CloseDialog } from './CloseDialog'
 
 // =============================================================================
 // DECISION VIEW
 // =============================================================================
-export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, optionHandlers, onScoreUpdate, onOpenMode, onStatusChange, onDelete }) {
+export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, optionHandlers, onScoreUpdate, onOpenMode, onStatusChange, onClose, onDelete }) {
   const [overrides, setOverrides] = useState(null)
   const [highlight, setHighlight] = useState(null)
 
@@ -35,6 +36,11 @@ export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandl
     setWeightsOpen(true)
     weightsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
+
+  const [closing, setClosing] = useState(false)
+  // what was actually chosen, if anything; the option may since have been deleted
+  const chosen = data.options.find(o => o.id === decision.final_choice_id)
+  const closed = decision.status === 'closed'
 
   const kh = kindHue(decision.type, decision.title)
   const narrow = useMedia(NARROW)
@@ -62,12 +68,25 @@ export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandl
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-outline btn-sm" onClick={() => onOpenMode('blind')}>Blind score mode</button>
             <button className="btn btn-outline btn-sm" onClick={() => onOpenMode('whatif')}>What-if</button>
-            {decision.status === 'closed'
+            {closed
               ? <button className="btn btn-outline btn-sm" onClick={() => onStatusChange('active')}>Reopen</button>
-              : <button className="btn btn-accent btn-sm" onClick={async () => { await onStatusChange('closed'); onBack() }}>✓ Close decision</button>}
+              : <button className="btn btn-accent btn-sm" onClick={() => setClosing(true)}>✓ Close decision</button>}
             <button className="btn btn-ghost btn-sm" style={{ color: 'var(--neg)' }} onClick={() => { if (confirm('Archive this decision? It disappears from Home but stays in the database.')) onDelete() }}>Archive</button>
           </div>
         </div>
+
+        {closed && (
+          <section aria-label="Decision outcome" style={{ marginBottom: 24, padding: '14px 18px', borderRadius: 12, border: '1px solid var(--accent)', background: 'var(--accent-soft)', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            <span aria-hidden="true" style={{ fontSize: 20, lineHeight: 1.2 }}>✓</span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 500 }}>
+                {chosen ? <>Chose <strong>{chosen.name || 'unnamed'}</strong></> : 'Closed without recording a choice'}
+                {decision.decided_at && <span className="label" style={{ marginLeft: 10 }}>decided {new Date(decision.decided_at).toLocaleDateString()}</span>}
+              </div>
+              {decision.notes && <p style={{ margin: '6px 0 0', fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', whiteSpace: 'pre-wrap' }}>{decision.notes}</p>}
+            </div>
+          </section>
+        )}
 
         {/* STANDINGS */}
         <section style={{ marginBottom: 32 }}>
@@ -99,6 +118,7 @@ export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandl
                 ranked={ranked} baseline={baseline}
                 parameters={data.parameters} scores={data.scores}
                 leaderId={top && !tied ? top.id : null}
+                chosenId={closed ? decision.final_choice_id : null}
                 paramColors={paramColors} optColors={optColors} overrides={overrides}
                 highlight={highlight} onHighlight={setHighlight} isWhatIf={isWhatIf}
                 optionHandlers={optionHandlers}
@@ -145,6 +165,11 @@ export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandl
           </section>
         )}
       </main>
+      {closing && (
+        <CloseDialog ranked={baseline} leaderId={standing(baseline).tied ? null : standing(baseline).top?.id} decision={decision}
+          onCancel={() => setClosing(false)}
+          onConfirm={async pick => { await onClose(pick); setClosing(false); onBack() }} />
+      )}
     </div>
   )
 }

@@ -23,7 +23,7 @@ export function StandingsList({ ranked, baseline, optionHandlers, optColors, ...
 // rank · name + bar · total · delete
 export const standingsCols = narrow => narrow ? '26px 1fr 62px 28px' : '40px 1fr 100px 36px'
 
-export function LeaderRow({ option, rank, parameters, scores, paramColors, optColor, leaderId, overrides, highlight, onHighlight, baselineRank, isWhatIf, onRename, onDelete }) {
+export function LeaderRow({ option, rank, parameters, scores, paramColors, optColor, leaderId, chosenId, overrides, highlight, onHighlight, baselineRank, isWhatIf, onRename, onDelete }) {
   const [hover, setHover] = useState(false)
   const narrow = useMedia(NARROW)
   const noHover = useMedia(NO_HOVER)
@@ -59,6 +59,7 @@ export function LeaderRow({ option, rank, parameters, scores, paramColors, optCo
             <InlineText value={option.name} onCommit={onRename} placeholder="option" label="Option name" style={{ fontSize: 16, fontWeight: 500 }} />
           </span>
           {isTop && <Pill color={isWhatIf ? 'var(--hi)' : 'var(--accent)'}>leading</Pill>}
+          {option.id === chosenId && <Pill color="var(--hi)">✓ chosen</Pill>}
           {option._ranked && shift > 0 && <Pill color="var(--accent)">↑{shift}</Pill>}
           {option._ranked && shift < 0 && <Pill color="var(--neg)">↓{Math.abs(shift)}</Pill>}
           {incomplete && <Pill color="var(--warn)">{option._scored}/{option._active} scored</Pill>}

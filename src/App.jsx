@@ -129,6 +129,12 @@ export function App() {
     await save('the title', supabase.from('sigma_decisions').update({ title }).eq('id', selectedId))
   }
 
+  async function closeDecision(id, { choiceId, why }) {
+    const fields = { status: 'closed', final_choice_id: choiceId, notes: why, decided_at: new Date().toISOString() }
+    setDecisions(ds => ds.map(d => d.id === id ? { ...d, ...fields } : d))
+    await save('the decision', supabase.from('sigma_decisions').update(fields).eq('id', id))
+  }
+
   async function setDecisionStatus(id, status) {
     setDecisions(ds => ds.map(d => d.id === id ? { ...d, status } : d))
     await save('the decision status', supabase.from('sigma_decisions').update({ status }).eq('id', id))
@@ -264,6 +270,7 @@ export function App() {
           onScoreUpdate={updateScore}
           onOpenMode={setMode}
           onStatusChange={s => setDecisionStatus(selectedId, s)}
+          onClose={pick => closeDecision(selectedId, pick)}
           onDelete={() => deleteDecision(selectedId)}
         />
       ) : (
