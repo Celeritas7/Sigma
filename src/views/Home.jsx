@@ -119,10 +119,24 @@ export function HomeRow({ d, idx, onClick, onDelete, onReopen }) {
       </div>
     </div>
   )
-  const lead = leading ? (
+  // closed rows show what was actually chosen (and why), not the leader
+  const picked = closed ? ranked.find(o => o.id === d.final_choice_id) : null
+  const lead = closed ? (
     <div style={{ minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-        {narrow && <span className="label">{closed ? 'picked' : 'leading'}</span>}
+        <span className="label">picked</span>
+        {picked
+          ? <span style={{ fontSize: 14, fontWeight: 500 }}>{picked.name || 'unnamed'}</span>
+          : <span className="label">no choice recorded</span>}
+      </div>
+      {d.notes && (
+        <span title={d.notes} style={{ marginTop: 4, display: 'block', fontSize: 12, color: 'var(--ink-soft)', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: narrow ? '100%' : 280 }}>“{d.notes}”</span>
+      )}
+    </div>
+  ) : leading ? (
+    <div style={{ minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        {narrow && <span className="label">leading</span>}
         <span style={{ fontSize: 14, fontWeight: 500 }}>{tied ? `${leading.name || 'unnamed'} = ${ranked[1].name || 'unnamed'}` : (leading.name || 'unnamed')}</span>
         <span className="mono" style={{ fontSize: 13, color: tied ? 'var(--ink-soft)' : 'var(--accent-text)' }}>{leading._total.toFixed(2)}</span>
       </div>
