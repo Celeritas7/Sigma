@@ -7,11 +7,12 @@ import { Matrix } from './Matrix'
 import { AddOptionRow, Legend, StandingsList } from './Standings'
 import { WeightPanel } from './Weights'
 import { CloseDialog } from './CloseDialog'
+import { Outcome } from './Outcome'
 
 // =============================================================================
 // DECISION VIEW
 // =============================================================================
-export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, optionHandlers, onScoreUpdate, onOpenMode, onStatusChange, onClose, onDelete }) {
+export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, optionHandlers, onScoreUpdate, onOpenMode, onStatusChange, onClose, onOutcome, onDelete }) {
   const [overrides, setOverrides] = useState(null)
   const [highlight, setHighlight] = useState(null)
 
@@ -78,12 +79,13 @@ export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandl
         {closed && (
           <section aria-label="Decision outcome" style={{ marginBottom: 24, padding: '14px 18px', borderRadius: 12, border: '1px solid var(--accent)', background: 'var(--accent-soft)', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
             <span aria-hidden="true" style={{ fontSize: 20, lineHeight: 1.2 }}>✓</span>
-            <div style={{ minWidth: 0 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: 15, fontWeight: 500 }}>
                 {chosen ? <>Chose <strong>{chosen.name || 'unnamed'}</strong></> : 'Closed without recording a choice'}
                 {decision.decided_at && <span className="label" style={{ marginLeft: 10 }}>decided {new Date(decision.decided_at).toLocaleDateString()}</span>}
               </div>
               {decision.notes && <p style={{ margin: '6px 0 0', fontSize: 14, lineHeight: 1.5, color: 'var(--ink-soft)', whiteSpace: 'pre-wrap' }}>{decision.notes}</p>}
+              <Outcome decision={decision} onSave={onOutcome} />
             </div>
           </section>
         )}
