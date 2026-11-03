@@ -135,6 +135,12 @@ export function App() {
     await save('the decision', supabase.from('sigma_decisions').update(fields).eq('id', id))
   }
 
+  async function setOutcome(id, { outcome, note }) {
+    const fields = { outcome, outcome_notes: note, reviewed_at: new Date().toISOString() }
+    setDecisions(ds => ds.map(d => d.id === id ? { ...d, ...fields } : d))
+    await save('the look-back', supabase.from('sigma_decisions').update(fields).eq('id', id))
+  }
+
   async function setDecisionStatus(id, status) {
     setDecisions(ds => ds.map(d => d.id === id ? { ...d, status } : d))
     await save('the decision status', supabase.from('sigma_decisions').update({ status }).eq('id', id))
@@ -271,6 +277,7 @@ export function App() {
           onOpenMode={setMode}
           onStatusChange={s => setDecisionStatus(selectedId, s)}
           onClose={pick => closeDecision(selectedId, pick)}
+          onOutcome={v => setOutcome(selectedId, v)}
           onDelete={() => deleteDecision(selectedId)}
         />
       ) : (

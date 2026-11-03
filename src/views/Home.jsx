@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Pill } from '../components/atoms'
 import { completeness, rankedOptions, standing } from '../lib/scoring'
 import { kindColor, kindEmoji, kindSoft } from '../lib/theme'
+import { lookbackDue, lookbackTally, outcomeDef } from '../lib/lookback'
 import { NARROW, NO_HOVER, useMedia } from '../lib/ui'
 
 // =============================================================================
@@ -75,14 +76,21 @@ export function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, on
             open.map((d, i) => <HomeRow key={d.id} d={d} idx={i + 1} onClick={() => onOpen(d.id)} onDelete={() => onDelete(d.id)} />)
           )}
         </div>
-        {closed.length > 0 && (
+        {closed.length > 0 && (() => {
+          const t = lookbackTally(closed)
+          return (
           <div style={{ marginTop: 40 }}>
-            <span className="label">recently closed</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+              <span className="label">recently closed</span>
+              {t.reviewed > 0 && <span className="label" style={{ color: 'var(--accent-text)' }}>happy with {t.good} of {t.reviewed} looked back on</span>}
+              {t.due > 0 && <Pill color="var(--warn)">{t.due} due for a look back</Pill>}
+            </div>
             <div className="card" style={{ marginTop: 12, overflow: 'hidden', background: 'var(--bg-soft)' }}>
               {closed.map(d => <HomeRow key={d.id} d={d} onClick={() => onOpen(d.id)} onReopen={() => onReopen(d.id)} />)}
             </div>
           </div>
-        )}
+          )
+        })()}
       </main>
     </div>
   )
@@ -110,6 +118,8 @@ export function HomeRow({ d, idx, onClick, onDelete, onReopen }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <button className="linklike" onClick={e => { e.stopPropagation(); onClick() }} style={{ fontSize: 15, fontWeight: 500 }}>{d.title?.trim() || <em style={{ color: 'var(--ink-faint)' }}>untitled question</em>}</button>
           {!closed && (tied ? <Pill color="var(--neg)">tied</Pill> : gap != null && gap < 0.6 && <Pill color="var(--neg)">tight</Pill>)}
+          {closed && outcomeDef(d.outcome) && <Pill color={outcomeDef(d.outcome).color}>{outcomeDef(d.outcome).emoji} {outcomeDef(d.outcome).label}</Pill>}
+          {closed && lookbackDue(d) && <Pill color="var(--warn)">look back due</Pill>}
           {c.pct === 0 && <Pill color="var(--ink-faint)">empty</Pill>}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
