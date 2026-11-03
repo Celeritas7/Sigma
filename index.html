@@ -309,6 +309,9 @@ function optionSoft(i) { return `oklch(0.95 0.045 ${OPTION_HUES[i % OPTION_HUES.
 // =============================================================================
 // SMALL UI ATOMS
 // =============================================================================
+// weights move in 0.5 steps: show 7 as "7" and 7.5 as "7.5", never rounded
+function fmtWeight(w) { return Number.isInteger(w) ? String(w) : w.toFixed(1) }
+
 function Pill({ children, color, bg, style }) {
   const c = color || 'var(--ink)'
   return <span className="pill" style={{
@@ -676,7 +679,7 @@ function WeightStep({ value, onChange, color }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
       <button style={btn} onClick={() => set(-1)} title="−1">−</button>
-      <span className="mono" style={{ minWidth: 22, textAlign: 'center', fontSize: 16, fontWeight: 600, color }}>{value.toFixed(0)}</span>
+      <span className="mono" style={{ minWidth: 22, textAlign: 'center', fontSize: 16, fontWeight: 600, color }}>{fmtWeight(value)}</span>
       <button style={btn} onClick={() => set(1)} title="+1">+</button>
     </div>
   )
@@ -695,14 +698,16 @@ function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHu
       return Object.keys(next).length ? next : null
     })
   }
+  // Each lane covers a range of weights, so a chip sits in the lane its real
+  // weight falls in. Dropping onto a different lane sets the lane's `value`.
   const TIERS = [
-    { key: 'must',  label: 'Must-have',      value: 10, hue: 145 },
-    { key: 'imp',   label: 'Important',      value: 8,  hue: 75 },
-    { key: 'nice',  label: 'Nice to have',   value: 5,  hue: 235 },
-    { key: 'minor', label: 'Minor',          value: 2,  hue: 25 },
-    { key: 'skip',  label: "Doesn't matter", value: 0,  hue: 285 },
+    { key: 'must',  label: 'Must-have',      min: 9,    range: '9–10',    value: 10, hue: 145 },
+    { key: 'imp',   label: 'Important',      min: 7,    range: '7–8.5',   value: 8,  hue: 75 },
+    { key: 'nice',  label: 'Nice to have',   min: 4,    range: '4–6.5',   value: 5,  hue: 235 },
+    { key: 'minor', label: 'Minor',          min: 1e-9, range: '0.5–3.5', value: 2,  hue: 25 },
+    { key: 'skip',  label: "Doesn't matter", min: -Infinity, range: '0 · not counted', value: 0, hue: 285 },
   ]
-  const tierOf = w => TIERS.reduce((best, t) => Math.abs(w - t.value) < Math.abs(w - best.value) ? t : best, TIERS[0])
+  const tierOf = w => TIERS.find(t => w >= t.min)
   const curW = pp => overrides?.[pp.id] ?? Number(pp.weight)
   const isOver = pp => overrides?.[pp.id] != null && Math.abs(overrides[pp.id] - Number(pp.weight)) > 0.01
   return (
@@ -713,7 +718,7 @@ function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHu
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span className="label" style={isWhatIf ? { color: 'var(--hi)' } : undefined}>weights — what matters most?</span>
             {isWhatIf && <Pill color="var(--hi)">unsaved</Pill>}
-            <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>{open ? (view === 'tiers' ? 'drag each onto a priority lane' : 'tap −/+ or drag the slider') : 'higher = matters more'}</span>
+            <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>{open ? (view === 'tiers' ? 'drag onto a lane to set its weight; fine-tune in Fine' : 'tap −/+ or drag the slider') : 'higher = matters more'}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {isWhatIf && <button className="btn btn-outline btn-sm" onClick={onReset}>Reset</button>}
@@ -742,7 +747,7 @@ function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHu
                   style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 11px', borderRadius: 999, background: 'var(--bg)', border: `1px solid ${highlight === pp.id ? c : 'var(--rule)'}` }}>
                   <span style={{ width: 9, height: 9, borderRadius: '50%', background: c }} />
                   <span style={{ fontSize: 12, maxWidth: 150, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pp.name}</span>
-                  <span className="mono" style={{ fontSize: 12, fontWeight: 600, color: isOver(pp) ? 'var(--hi)' : 'var(--ink)' }}>{curW(pp).toFixed(0)}</span>
+                  <span className="mono" style={{ fontSize: 12, fontWeight: 600, color: isOver(pp) ? 'var(--hi)' : 'var(--ink)' }}>{fmtWeight(curW(pp))}</span>
                 </div>
               )
             })}
@@ -777,11 +782,11 @@ function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHu
                 <div key={t.key}
                   onDragOver={e => { e.preventDefault(); if (overLane !== t.key) setOverLane(t.key) }}
                   onDragLeave={() => setOverLane(l => l === t.key ? null : l)}
-                  onDrop={e => { e.preventDefault(); const id = dragId || e.dataTransfer.getData('text/plain'); const pp = parameters.find(p => p.id === id); if (pp) setW(pp, t.value); setDragId(null); setOverLane(null) }}
+                  onDrop={e => { e.preventDefault(); const id = dragId || e.dataTransfer.getData('text/plain'); const pp = parameters.find(p => p.id === id); if (pp && tierOf(curW(pp)).key !== t.key) setW(pp, t.value); setDragId(null); setOverLane(null) }}
                   style={{ display: 'grid', gridTemplateColumns: '152px 1fr', alignItems: 'stretch', border: `1px solid ${active ? `oklch(0.6 0.15 ${t.hue})` : 'var(--rule)'}`, borderRadius: 11, background: active ? `oklch(0.975 0.04 ${t.hue})` : 'var(--bg)', transition: 'border-color 120ms, background 120ms', minHeight: 52, overflow: 'hidden' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, padding: '10px 14px', borderRight: '1px solid var(--rule-soft)', background: `oklch(0.97 0.055 ${t.hue})` }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: `oklch(0.42 0.13 ${t.hue})` }}>{t.label}</span>
-                    <span className="label" style={{ color: `oklch(0.52 0.1 ${t.hue})` }}>weight {t.value}</span>
+                    <span className="label" style={{ color: `oklch(0.52 0.1 ${t.hue})` }}>weight {t.range}</span>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, alignItems: 'center', padding: '8px 12px' }}>
                     {chips.length === 0 && <span className="label" style={{ opacity: 0.45 }}>{active ? 'release to drop' : 'drop here'}</span>}
@@ -795,6 +800,7 @@ function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHu
                           style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 9, background: 'var(--bg)', border: `1px solid ${over ? 'var(--hi)' : (highlight === pp.id ? c : 'var(--rule)')}`, boxShadow: 'var(--shadow-sm)', cursor: 'grab', opacity: dragId === pp.id ? 0.35 : 1, transition: 'opacity 120ms' }}>
                           <span style={{ width: 9, height: 9, borderRadius: 3, background: c, flexShrink: 0 }} />
                           <span style={{ fontSize: 13, fontWeight: 500 }}>{pp.name}</span>
+                          <span className="mono" title={over ? `was ${fmtWeight(Number(pp.weight))}` : undefined} style={{ fontSize: 12, fontWeight: 600, color: over ? 'var(--hi)' : 'var(--ink-soft)' }}>{fmtWeight(curW(pp))}</span>
                           <span style={{ fontSize: 13, color: 'var(--ink-ghost)', letterSpacing: '-2px', marginLeft: 2 }}>⠿</span>
                         </div>
                       )
@@ -1054,7 +1060,7 @@ function Legend({ parameters, paramColors, highlight, onHighlight, overrides }) 
               opacity: highlight == null || highlight === pp.id ? 1 : 0.35, transition: 'opacity 150ms' }}>
             <span style={{ width: 10, height: 10, borderRadius: 2, background: paramColors[pp.id] }} />
             <span style={{ fontSize: 11, color: 'var(--ink-soft)' }}>{pp.name}</span>
-            <span className="mono" style={{ fontSize: 10, color: 'var(--ink-faint)' }}>w{cur.toFixed(0)}</span>
+            <span className="mono" style={{ fontSize: 10, color: 'var(--ink-faint)' }}>w{fmtWeight(cur)}</span>
           </button>
         )
       })}
