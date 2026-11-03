@@ -11,12 +11,13 @@ Weighted decision-matrix app. Read `README.md` first for layout, backend and dep
 - Never deploy `cross-check` with JWT verification off; it also checks the user in code.
 
 ## State (2026-11-03)
-Done today: scoring fixes, owner-only RLS + Google sign-in, cross-check lockdown, tier lanes, layout, phone, accessibility, Vite build + tests + CI, decision icons, record-the-choice on close. Sigma has no open bugs and no Supabase security warnings.
+Done today: scoring fixes, owner-only RLS + Google sign-in, cross-check lockdown, tier lanes, layout, phone, accessibility, Vite build + tests + CI, decision icons, record-the-choice on close, look-back on closed decisions (outcome + note, 90-day reminder; `src/lib/lookback.js`), reload-once guard for stale cached pages after a deploy. Sigma has no open bugs and no Supabase security warnings. Supabase sign-ups are off.
 
 Open:
 - Unverified on the live site: the cross-check button, and whether the header clips at the owner's window width.
-- Dashboard: confirm "Allow new users to sign up" is off (strangers could otherwise use cross-check).
-- Feature backlog, in order: look-back on closed decisions (outcome rating + note, check-in reminder), templates (tables `sigma_templates` / `sigma_template_parameters` exist and are empty), dark mode, export.
+- Feature backlog, in order: templates (tables `sigma_templates` / `sigma_template_parameters` exist and are empty), dark mode, export.
+
+Note: after a deploy, a browser holding the cached page may show a blank page once; the guard in index.html reloads it. A hard refresh also works.
 
 ## Shared project caveat
 Supabase project `wylxvmkcrexwfpjpbhyy` is shared with the owner's other apps. Security findings for those apps belong in their own repos, not here.
