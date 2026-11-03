@@ -36,7 +36,7 @@ export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandl
     weightsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  const kh = kindHue(decision.type)
+  const kh = kindHue(decision.type, decision.title)
   const narrow = useMedia(NARROW)
   return (
     <div style={{
@@ -49,13 +49,13 @@ export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandl
           <div style={{ flex: '1 1 320px' }}>
             <button className="btn btn-ghost btn-sm" onClick={onBack} style={{ marginLeft: -10, marginBottom: 4 }}>← all decisions</button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 52, height: 52, flexShrink: 0, borderRadius: 13, background: kindSoft(decision.type), border: `1px solid ${kindColor(decision.type)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, boxShadow: 'var(--shadow-sm)' }}>{kindEmoji(decision.type)}</div>
+              <div style={{ width: 52, height: 52, flexShrink: 0, borderRadius: 13, background: kindSoft(decision.type, decision.title), border: `1px solid ${kindColor(decision.type, decision.title)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, boxShadow: 'var(--shadow-sm)' }}>{kindEmoji(decision.type, decision.title)}</div>
               <h1 style={{ margin: 0, fontSize: 'clamp(24px, 3vw, 38px)', fontWeight: 500, letterSpacing: '-0.02em' }}>
                 <InlineText value={decision.title} onCommit={onTitleUpdate} placeholder="What are you deciding?" label="Decision title" />
               </h1>
             </div>
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Pill color={kindColor(decision.type)}>{decision.type || 'custom'}</Pill>
+              <Pill color={kindColor(decision.type, decision.title)}>{decision.type || 'custom'}</Pill>
               <span className="label">started {new Date(decision.created_at).toLocaleDateString()}</span>
             </div>
           </div>

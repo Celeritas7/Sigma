@@ -242,7 +242,7 @@ export function App() {
     <div style={{ minHeight: '100vh' }}>
       <TopHeader
         middle={selectedDecision
-          ? <span className="label" style={{ color: 'rgba(255,255,255,0.75)' }}>{kindEmoji(selectedDecision.type)} {selectedDecision.type || 'custom'} · {completeness(decisionData.parameters, decisionData.options, decisionData.scores).filled}/{completeness(decisionData.parameters, decisionData.options, decisionData.scores).total} considered</span>
+          ? <span className="label" style={{ color: 'rgba(255,255,255,0.75)' }}>{kindEmoji(selectedDecision.type, selectedDecision.title)} {selectedDecision.type || 'custom'} · {completeness(decisionData.parameters, decisionData.options, decisionData.scores).filled}/{completeness(decisionData.parameters, decisionData.options, decisionData.scores).total} considered</span>
           : <span className="label" style={{ color: 'rgba(255,255,255,0.55)' }}>HOME</span>
         }
         onHome={goHome}
