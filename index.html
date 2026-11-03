@@ -686,8 +686,7 @@ function WeightStep({ value, onChange, color }) {
   )
 }
 
-function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHues, highlight, setHighlight, isWhatIf, kh, onReset, onSave }) {
-  const [open, setOpen] = useState(true)
+function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHues, highlight, setHighlight, isWhatIf, kh, onReset, onSave, open, setOpen }) {
   const [view, setView] = useState('tiers') // 'tiers' | 'fine'
   const [dragId, setDragId] = useState(null)
   const [overLane, setOverLane] = useState(null)
@@ -712,8 +711,8 @@ function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHu
   const curW = pp => overrides?.[pp.id] ?? Number(pp.weight)
   const isOver = pp => overrides?.[pp.id] != null && Math.abs(overrides[pp.id] - Number(pp.weight)) > 0.01
   return (
-    <div style={{ background: isWhatIf ? 'var(--hi-soft)' : `oklch(0.96 0.03 ${kh})`, borderBottom: `1px solid ${isWhatIf ? 'var(--hi)' : `oklch(0.88 0.05 ${kh})`}`, transition: 'background 200ms' }}>
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '12px 28px' }}>
+    <div className="card" style={{ background: isWhatIf ? 'var(--hi-soft)' : `oklch(0.96 0.03 ${kh})`, borderColor: isWhatIf ? 'var(--hi)' : `oklch(0.88 0.05 ${kh})`, transition: 'background 200ms' }}>
+      <div style={{ padding: '12px 18px 14px' }}>
         {/* header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
@@ -837,14 +836,13 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
   const optColors = {}
   data.options.forEach((o, i) => { optColors[o.id] = optionColor(i) })
 
-  const onWeightEdit = (pid, w) => {
-    const v = Math.max(0, Math.min(10, w))
-    if (overrides?.[pid] != null) {
-      const next = { ...overrides }
-      delete next[pid]
-      setOverrides(Object.keys(next).length ? next : null)
-    }
-    paramHandlers.onUpdate(pid, { weight: v })
+  // the weights panel is the one place weights are edited; it starts collapsed
+  // so the standings are the first thing on the page
+  const [weightsOpen, setWeightsOpen] = useState(false)
+  const weightsRef = useRef(null)
+  const openWeights = () => {
+    setWeightsOpen(true)
+    weightsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const kh = kindHue(decision.type)
@@ -853,20 +851,6 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
       minHeight: '100vh',
       background: `radial-gradient(1100px 460px at 50% -120px, oklch(0.93 0.06 ${kh} / 0.7), transparent 65%), linear-gradient(180deg, oklch(0.96 0.03 ${kh} / 0.45), transparent 340px)`,
     }}>
-      {/* WEIGHT PANEL */}
-      <WeightPanel
-        parameters={data.parameters}
-        overrides={overrides} setOverrides={setOverrides}
-        paramColors={paramColors} paramHues={paramHues}
-        highlight={highlight} setHighlight={setHighlight}
-        isWhatIf={isWhatIf} kh={kh}
-        onReset={() => setOverrides(null)}
-        onSave={async () => {
-          for (const [pid, w] of Object.entries(overrides)) await paramHandlers.onUpdate(pid, { weight: w })
-          setOverrides(null)
-        }}
-      />
-
       <main style={{ maxWidth: 1280, margin: '0 auto', padding: '28px 28px 80px' }}>
         {/* title + actions */}
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 24 }}>
@@ -898,6 +882,11 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
               <span className="label">standings · weighted total</span>
+              {isWhatIf && (
+                <button onClick={openWeights} style={{ background: 'none', border: 'none', padding: 0 }}>
+                  <Pill color="var(--hi)">unsaved weights · review</Pill>
+                </button>
+              )}
               {tied
                 ? <Pill color="var(--neg)">tied · {top.name || 'option'} = {runner.name || 'option'}</Pill>
                 : gap != null && gap < 0.6 && <Pill color="var(--neg)">tight · only {gap.toFixed(2)} ahead</Pill>}
@@ -928,18 +917,37 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
           )}
         </section>
 
+        {/* WEIGHTS */}
+        {data.parameters.length > 0 && (
+          <section ref={weightsRef} style={{ marginBottom: 32, scrollMarginTop: 72 }}>
+            <WeightPanel
+              parameters={data.parameters}
+              overrides={overrides} setOverrides={setOverrides}
+              paramColors={paramColors} paramHues={paramHues}
+              highlight={highlight} setHighlight={setHighlight}
+              isWhatIf={isWhatIf} kh={kh}
+              open={weightsOpen} setOpen={setWeightsOpen}
+              onReset={() => setOverrides(null)}
+              onSave={async () => {
+                for (const [pid, w] of Object.entries(overrides)) await paramHandlers.onUpdate(pid, { weight: w })
+                setOverrides(null)
+              }}
+            />
+          </section>
+        )}
+
         {/* MATRIX */}
         {(data.parameters.length > 0 || data.options.length > 0) && (
           <section>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
-              <span className="label">matrix · click a cell to edit</span>
+              <span className="label">matrix · type evidence, drag to score</span>
               <span className="label">{c.total - c.filled} empty</span>
             </div>
             <div className="card" style={{ overflow: 'auto' }}>
               <Matrix parameters={data.parameters} options={data.options} scores={data.scores}
                 paramColors={paramColors} optColors={optColors} highlight={highlight} setHighlight={setHighlight}
                 onScoreUpdate={onScoreUpdate} paramHandlers={paramHandlers} optionHandlers={optionHandlers}
-                onWeightEdit={onWeightEdit}
+                overrides={overrides} onEditWeights={openWeights}
               />
             </div>
           </section>
@@ -1087,7 +1095,7 @@ function AddOptionRow({ onAdd }) {
 // =============================================================================
 // MATRIX
 // =============================================================================
-function Matrix({ parameters, options, scores, paramColors, optColors, highlight, setHighlight, onScoreUpdate, paramHandlers, optionHandlers, onWeightEdit }) {
+function Matrix({ parameters, options, scores, paramColors, optColors, highlight, setHighlight, onScoreUpdate, paramHandlers, optionHandlers, overrides, onEditWeights }) {
   const [addParamDraft, setAddParamDraft] = useState('')
   return (
     <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 720 }}>
@@ -1115,9 +1123,16 @@ function Matrix({ parameters, options, scores, paramColors, optColors, highlight
                 <ParameterRow parameter={pp} color={paramColors[pp.id]} onUpdate={fields => paramHandlers.onUpdate(pp.id, fields)} onDelete={() => paramHandlers.onDelete(pp.id)} />
               </td>
               <td style={{ padding: '12px 12px' }}>
-                <input type="number" min="0" max="10" step="0.5" value={pp.weight}
-                  onChange={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) onWeightEdit(pp.id, n) }}
-                  style={{ width: 48, fontFamily: 'Geist Mono, monospace', fontSize: 13, border: '1px solid var(--rule)', borderRadius: 4, padding: '3px 6px', color: 'var(--ink)' }} />
+                {(() => {
+                  const over = overrides?.[pp.id] != null
+                  const w = over ? overrides[pp.id] : Number(pp.weight)
+                  return (
+                    <button onClick={onEditWeights} title={over ? `unsaved (was ${fmtWeight(Number(pp.weight))}) · edit in Weights` : 'edit in Weights'}
+                      className="mono" style={{ minWidth: 40, padding: '3px 8px', fontSize: 13, fontWeight: 600, textAlign: 'center', border: `1px solid ${over ? 'var(--hi)' : 'var(--rule)'}`, borderRadius: 6, background: over ? 'var(--hi-soft)' : 'var(--bg)', color: over ? 'var(--hi)' : 'var(--ink)' }}>
+                      {fmtWeight(w)}
+                    </button>
+                  )
+                })()}
               </td>
               {options.map(o => (
                 <Cell key={o.id} param={pp} option={o}
