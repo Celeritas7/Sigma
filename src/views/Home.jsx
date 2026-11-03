@@ -99,13 +99,13 @@ export function HomeRow({ d, idx, onClick, onDelete, onReopen }) {
   const c = completeness(d._parameters, d._options, d._scores)
   const daysOpen = Math.max(1, Math.floor((Date.now() - new Date(d.created_at).getTime()) / 86400000))
   const statusLabel = closed ? 'closed' : c.pct >= 0.7 ? 'ready to choose' : c.pct >= 0.35 ? 'still gathering' : 'just started'
-  const kc = kindColor(d.type)
+  const kc = kindColor(d.type, d.title)
   const statusColor = closed ? 'var(--ink-faint)' : c.pct >= 0.7 ? 'var(--accent)' : c.pct >= 0.35 ? 'var(--warn)' : 'var(--ink-ghost)'
   const statusText = closed ? 'var(--ink-faint)' : c.pct >= 0.7 ? 'var(--accent-text)' : c.pct >= 0.35 ? 'var(--warn-text)' : 'var(--ink-faint)'
 
   const title = (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', minWidth: 0, flex: 1 }}>
-      <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, background: kindSoft(d.type), border: `1px solid ${kc}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, marginTop: 1 }}>{kindEmoji(d.type)}</div>
+      <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, background: kindSoft(d.type, d.title), border: `1px solid ${kc}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, marginTop: 1 }}>{kindEmoji(d.type, d.title)}</div>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <button className="linklike" onClick={e => { e.stopPropagation(); onClick() }} style={{ fontSize: 15, fontWeight: 500 }}>{d.title?.trim() || <em style={{ color: 'var(--ink-faint)' }}>untitled question</em>}</button>
@@ -145,7 +145,7 @@ export function HomeRow({ d, idx, onClick, onDelete, onReopen }) {
     ? <button className="btn btn-ghost btn-sm" onClick={e => { e.stopPropagation(); onReopen() }}>Reopen</button>
     : <button className="iconbtn" title="archive decision" aria-label="archive decision" style={{ color: 'var(--neg)' }} onClick={e => { e.stopPropagation(); if (confirm(`Archive "${d.title || 'untitled'}"?`)) onDelete() }}>×</button>
   const age = <span className="mono" style={{ fontSize: 11, color: 'var(--ink-faint)' }}>{daysOpen}d</span>
-  const rowStyle = { borderBottom: '1px solid var(--rule-soft)', cursor: 'pointer', background: hover ? kindSoft(d.type) : 'transparent', boxShadow: hover ? `inset 3px 0 0 ${kc}` : 'inset 0 0 0 transparent', transition: 'background 140ms, box-shadow 140ms' }
+  const rowStyle = { borderBottom: '1px solid var(--rule-soft)', cursor: 'pointer', background: hover ? kindSoft(d.type, d.title) : 'transparent', boxShadow: hover ? `inset 3px 0 0 ${kc}` : 'inset 0 0 0 transparent', transition: 'background 140ms, box-shadow 140ms' }
 
   if (narrow) {
     return (
