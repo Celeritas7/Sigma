@@ -11,11 +11,12 @@ Weighted decision-matrix app. Read `README.md` first for layout, backend and dep
 - Never deploy `cross-check` with JWT verification off; it also checks the user in code.
 
 ## State (2026-11-03)
-Done today: scoring fixes, owner-only RLS + Google sign-in, cross-check lockdown, tier lanes, layout, phone, accessibility, Vite build + tests + CI, decision icons, record-the-choice on close, look-back on closed decisions (outcome + note, 90-day reminder; `src/lib/lookback.js`), reload-once guard for stale cached pages after a deploy. Sigma has no open bugs and no Supabase security warnings. Supabase sign-ups are off.
+Done today: scoring fixes, owner-only RLS + Google sign-in, cross-check lockdown, tier lanes, layout, phone, accessibility, Vite build + tests + CI, decision icons, record-the-choice on close, look-back on closed decisions (outcome + note, 90-day reminder; `src/lib/lookback.js`), reload-once guard for stale cached pages after a deploy. Templates: New decision opens a picker (blank, six starters in `src/lib/templates.js`, the user's own); "Save as template" on a decision saves its considerations and weights to `sigma_templates` / `sigma_template_parameters`. Sigma has no open bugs and no Supabase security warnings. Supabase sign-ups are off.
 
 Open:
 - Unverified on the live site: the cross-check button, and whether the header clips at the owner's window width.
-- Feature backlog, in order: templates (tables `sigma_templates` / `sigma_template_parameters` exist and are empty), dark mode, export.
+- Migration `20261103170000_sigma_templates_owner.sql` (owner column + RLS on the template tables) to apply after the templates PR merges. Until then starters work and saving a template shows an error.
+- Feature backlog, in order: dark mode, export.
 
 Note: after a deploy, a browser holding the cached page may show a blank page once; the guard in index.html reloads it. A hard refresh also works.
 

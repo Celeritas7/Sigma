@@ -3,9 +3,11 @@ import { TopHeader } from './components/Header'
 import { SignIn } from './components/SignIn'
 import { completeness } from './lib/scoring'
 import { supabase, supabaseInitError } from './lib/supabase'
+import { parameterRowsFromTemplate, templateFromDecision, templatesFromRows } from './lib/templates'
 import { ACCENT_OPTIONS, applyAccent, kindEmoji } from './lib/theme'
 import { BlindOverlay } from './views/Blind'
 import { Home } from './views/Home'
+import { NewDecisionDialog } from './views/NewDecision'
 import { WhatIfOverlay } from './views/WhatIf'
 import { DecisionView } from './views/decision/DecisionView'
 
@@ -29,6 +31,9 @@ export function App() {
   // cell key -> promise of the first insert for that score cell
   const scoreInserts = useRef(new Map())
   const [mode, setMode] = useState(null)
+  // the user's saved templates (starters live in src/lib/templates.js)
+  const [templates, setTemplates] = useState([])
+  const [picking, setPicking] = useState(false)
 
   function patchData(fn) {
     dataRef.current = fn(dataRef.current)
@@ -72,8 +77,8 @@ export function App() {
 
   // token refreshes keep the same user id, so this only runs on sign-in/out
   useEffect(() => {
-    if (userId) { loadDecisions(); return }
-    setDecisions([]); setSelectedId(null); setMode(null)
+    if (userId) { loadDecisions(); loadTemplates(); return }
+    setDecisions([]); setSelectedId(null); setMode(null); setTemplates([]); setPicking(false)
     patchData(() => ({ parameters: [], options: [], scores: [] }))
   }, [userId])
 
@@ -115,13 +120,54 @@ export function App() {
     patchData(() => ({ parameters: pRes.data || [], options: oRes.data || [], scores: sRes.data || [] }))
   }
 
-  async function createDecision() {
-    const res = await save('the new decision', supabase.from('sigma_decisions').insert({ title: '', type: 'custom', status: 'active' }).select().single())
-    if (res?.data) {
-      setDecisions(ds => [{ ...res.data, _parameters: [], _options: [], _scores: [] }, ...ds])
-      setSelectedId(res.data.id)
-      patchData(() => ({ parameters: [], options: [], scores: [] }))
+  // Templates are a nice-to-have: if they can't be read, the picker still
+  // offers a blank decision and the starters.
+  async function loadTemplates() {
+    const { data: rows, error } = await supabase.from('sigma_templates').select('*').order('created_at')
+    if (error || !rows?.length) { setTemplates([]); return }
+    const { data: params } = await supabase.from('sigma_template_parameters').select('*').in('template_id', rows.map(t => t.id))
+    setTemplates(templatesFromRows(rows, params || []))
+  }
+
+  // template: null for a blank decision, else a starter or a saved template
+  async function createDecision(template = null) {
+    const fields = { title: '', type: template?.type || 'custom', status: 'active' }
+    if (template && !template.builtin) fields.template_id = template.id
+    const res = await save('the new decision', supabase.from('sigma_decisions').insert(fields).select().single())
+    setPicking(false)
+    if (!res?.data) return
+    const decision = res.data
+    let parameters = []
+    const rows = parameterRowsFromTemplate(template, decision.id)
+    if (rows.length) {
+      const pRes = await save("the template's considerations", supabase.from('sigma_parameters').insert(rows).select())
+      parameters = [...(pRes?.data || [])].sort((a, b) => a.display_order - b.display_order)
     }
+    setDecisions(ds => [{ ...decision, _parameters: parameters, _options: [], _scores: [] }, ...ds.filter(d => d.id !== decision.id)])
+    patchData(() => ({ parameters, options: [], scores: [] }))
+    setSelectedId(decision.id)
+  }
+
+  // Returns true when saved, so the dialog knows whether to close.
+  async function saveTemplate(name) {
+    const { template, parameters } = templateFromDecision(selectedDecision, dataRef.current.parameters, name)
+    const res = await save('the template', supabase.from('sigma_templates').insert(template).select().single())
+    if (!res?.data) return false
+    const pRes = await save("the template's considerations", supabase.from('sigma_template_parameters')
+      .insert(parameters.map(p => ({ ...p, template_id: res.data.id }))))
+    if (!pRes) {
+      // don't leave an empty template behind
+      await supabase.from('sigma_templates').delete().eq('id', res.data.id)
+      return false
+    }
+    await loadTemplates()
+    return true
+  }
+
+  async function deleteTemplate(id) {
+    setTemplates(ts => ts.filter(t => t.id !== id))
+    const res = await save('the template deletion', supabase.from('sigma_templates').delete().eq('id', id))
+    if (!res) loadTemplates()
   }
 
   async function updateDecisionTitle(title) {
@@ -258,13 +304,13 @@ export function App() {
           : <span className="label" style={{ color: 'rgba(255,255,255,0.55)' }}>HOME</span>
         }
         onHome={goHome}
-        onNew={createDecision}
+        onNew={() => setPicking(true)}
         email={session.user.email}
         onSignOut={signOut}
       />
 
       {selectedId === null ? (
-        <Home decisions={decisions} onOpen={setSelectedId} onNew={createDecision} loading={loading} loadError={loadError} onRetry={loadDecisions} onDelete={deleteDecision} onReopen={id => setDecisionStatus(id, 'active')} />
+        <Home decisions={decisions} onOpen={setSelectedId} onNew={() => setPicking(true)} loading={loading} loadError={loadError} onRetry={loadDecisions} onDelete={deleteDecision} onReopen={id => setDecisionStatus(id, 'active')} />
       ) : selectedDecision ? (
         <DecisionView
           decision={selectedDecision}
@@ -279,6 +325,7 @@ export function App() {
           onClose={pick => closeDecision(selectedId, pick)}
           onOutcome={v => setOutcome(selectedId, v)}
           onDelete={() => deleteDecision(selectedId)}
+          onSaveTemplate={saveTemplate}
         />
       ) : (
         <div style={{ padding: '40px 28px' }}><span className="label">loading…</span></div>
@@ -286,6 +333,8 @@ export function App() {
 
       {selectedId && mode === 'whatif' && <WhatIfOverlay data={decisionData} onClose={() => setMode(null)} />}
       {selectedId && mode === 'blind'  && <BlindOverlay  data={decisionData} onScoreUpdate={updateScore} onClose={() => setMode(null)} />}
+
+      {picking && <NewDecisionDialog templates={templates} onCreate={createDecision} onDeleteTemplate={deleteTemplate} onCancel={() => setPicking(false)} />}
 
       {saveError && (
         <div role="alert" style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 70, maxWidth: 'calc(100vw - 32px)', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px 10px 16px', background: 'var(--neg-soft)', border: '1px solid var(--neg)', borderRadius: 10, boxShadow: 'var(--shadow-md)', animation: 'popin 200ms' }}>
