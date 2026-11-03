@@ -68,7 +68,7 @@
   .label { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
   .pill { display: inline-flex; align-items: center; padding: 2px 8px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 999px; white-space: nowrap; }
   .card { background: var(--bg); border: 1px solid var(--rule); border-radius: 14px; box-shadow: var(--shadow-md); }
-  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px; font-size: 13px; font-weight: 500; border: 1px solid transparent; border-radius: 8px; transition: all 120ms; line-height: 1.2; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px; font-size: 13px; font-weight: 500; border: 1px solid transparent; border-radius: 8px; transition: all 120ms; line-height: 1.2; white-space: nowrap; }
   .btn-sm { padding: 6px 11px; font-size: 12px; }
   .btn-primary { background: linear-gradient(180deg, oklch(0.26 0.03 265), var(--ink)); color: #fff; border-color: var(--ink); box-shadow: var(--shadow-sm); }
   .btn-primary:hover { filter: brightness(1.15); }
@@ -310,6 +310,21 @@ function optionSoft(i) { return `oklch(0.95 0.045 ${OPTION_HUES[i % OPTION_HUES.
 // =============================================================================
 // SMALL UI ATOMS
 // =============================================================================
+// Layout switches. NARROW: phone-width screens get stacked layouts.
+// NO_HOVER: touch screens, where hover-only buttons would never appear.
+const NARROW = '(max-width: 640px)'
+const NO_HOVER = '(hover: none)'
+function useMedia(query) {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches)
+  useEffect(() => {
+    const mq = window.matchMedia(query)
+    const onChange = () => setMatches(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [query])
+  return matches
+}
+
 // weights move in 0.5 steps: show 7 as "7" and 7.5 as "7.5", never rounded
 function fmtWeight(w) { return Number.isInteger(w) ? String(w) : w.toFixed(1) }
 
@@ -428,10 +443,11 @@ function RawInput({ value, onChange, unit, type, options }) {
 // HEADER
 // =============================================================================
 function TopHeader({ middle, onHome, onNew, email, onSignOut }) {
+  const narrow = useMedia(NARROW)
   return (
     <header style={{
-      padding: '12px 22px',
-      display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 16,
+      padding: narrow ? '10px 16px' : '12px 22px',
+      display: 'grid', gridTemplateColumns: narrow ? '1fr auto' : '1fr auto 1fr', alignItems: 'center', gap: narrow ? 8 : 16,
       background: 'linear-gradient(100deg, var(--ink-deep), var(--ink))',
       color: '#fff', position: 'sticky', top: 0, zIndex: 30,
       boxShadow: 'var(--shadow-md)',
@@ -441,11 +457,13 @@ function TopHeader({ middle, onHome, onNew, email, onSignOut }) {
           <div style={{ width: 26, height: 26, background: 'linear-gradient(135deg, var(--accent), var(--accent-2))', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, borderRadius: 7, boxShadow: '0 2px 8px oklch(0.58 0.16 145 / 0.4)' }}>Σ</div>
           <span style={{ fontWeight: 600, fontSize: 15, letterSpacing: '-0.01em' }}>Sigma</span>
         </button>
-        <span style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.2)' }} />
-        <span className="label" style={{ color: 'rgba(255,255,255,0.6)' }}>decisions, decomposed</span>
+        {!narrow && <>
+          <span style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.2)' }} />
+          <span className="label" style={{ color: 'rgba(255,255,255,0.6)' }}>decisions, decomposed</span>
+        </>}
       </div>
-      <div style={{ textAlign: 'center', minWidth: 0 }}>{middle}</div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
+      {!narrow && <div style={{ textAlign: 'center', minWidth: 0 }}>{middle}</div>}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: narrow ? 4 : 10 }}>
         <button className="btn btn-sm" onClick={onNew} style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
           <span style={{ fontSize: 14, lineHeight: 1 }}>+</span> New
         </button>
@@ -527,14 +545,15 @@ function AccentMenu() {
 // HOME
 // =============================================================================
 function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, onDelete, onReopen }) {
+  const narrow = useMedia(NARROW)
   const open = decisions.filter(d => d.status !== 'closed' && d.status !== 'archived')
   const closed = decisions.filter(d => d.status === 'closed')
   return (
     <div>
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 28px 64px' }}>
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: narrow ? '20px 16px 48px' : '40px 28px 64px' }}>
         <div style={{
-          position: 'relative', overflow: 'hidden', marginBottom: 36,
-          borderRadius: 18, padding: '40px 40px 44px',
+          position: 'relative', overflow: 'hidden', marginBottom: narrow ? 24 : 36,
+          borderRadius: 18, padding: narrow ? '24px 20px 26px' : '40px 40px 44px',
           background: 'linear-gradient(135deg, var(--ink-deep), var(--ink))',
           color: '#fff', boxShadow: 'var(--shadow-lg)',
         }}>
@@ -545,7 +564,7 @@ function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, onDelete,
           <div style={{ position: 'absolute', right: 24, top: -30, fontSize: 260, fontWeight: 700, lineHeight: 1, color: 'rgba(255,255,255,0.05)', fontFamily: 'Geist, sans-serif', pointerEvents: 'none', userSelect: 'none' }}>Σ</div>
           <div style={{ position: 'relative' }}>
             <span className="label" style={{ color: 'rgba(255,255,255,0.6)' }}>{loading ? 'loading…' : `${open.length} open · ${closed.length} closed`} · {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-            <h1 style={{ fontSize: 'clamp(32px, 4.5vw, 54px)', fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 0', lineHeight: 1.04, maxWidth: 720 }}>
+            <h1 style={{ fontSize: narrow ? 28 : 'clamp(32px, 4.5vw, 54px)', fontWeight: 600, letterSpacing: '-0.025em', margin: '14px 0 0', lineHeight: 1.04, maxWidth: 720 }}>
               {loading ? (
                 <span>Picking up where you left off…</span>
               ) : open.length === 0 ? (
@@ -569,9 +588,11 @@ function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, onDelete,
           </button>
         </div>
         <div className="card" style={{ overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '36px 2.6fr 1.7fr 1.4fr 70px', gap: 16, padding: '11px 18px', background: 'var(--bg-soft)', borderBottom: '1px solid var(--rule)' }}>
-            <span className="label">#</span><span className="label">question</span><span className="label">leading</span><span className="label">progress</span><span className="label" style={{ textAlign: 'right' }}>age</span>
-          </div>
+          {!narrow && (
+            <div style={{ display: 'grid', gridTemplateColumns: '36px 2.6fr 1.7fr 1.4fr 80px', gap: 16, padding: '11px 18px', background: 'var(--bg-soft)', borderBottom: '1px solid var(--rule)' }}>
+              <span className="label">#</span><span className="label">question</span><span className="label">leading</span><span className="label">progress</span><span className="label" style={{ textAlign: 'right' }}>age</span>
+            </div>
+          )}
           {loading ? (
             <div style={{ padding: 48, textAlign: 'center' }}><span className="label">loading…</span></div>
           ) : open.length === 0 ? (
@@ -595,21 +616,7 @@ function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, onDelete,
           <div style={{ marginTop: 40 }}>
             <span className="label">recently closed</span>
             <div className="card" style={{ marginTop: 12, overflow: 'hidden', background: 'var(--bg-soft)' }}>
-              {closed.map(d => (
-                <div key={d.id} onClick={() => onOpen(d.id)} style={{ display: 'grid', gridTemplateColumns: '36px 2.6fr 1.7fr 1.4fr 70px', gap: 16, alignItems: 'center', padding: '14px 18px', opacity: 0.75, borderBottom: '1px solid var(--rule-soft)', cursor: 'pointer' }}>
-                  <span className="mono" style={{ fontSize: 11, color: 'var(--ink-faint)' }}>—</span>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <div style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 8, background: kindSoft(d.type), border: `1px solid ${kindColor(d.type)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{kindEmoji(d.type)}</div>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 500 }}>{d.title || <em style={{ color: 'var(--ink-faint)' }}>untitled</em>}</div>
-                      <span className="label" style={{ marginTop: 3, display: 'block' }}>{d.type || 'custom'} · closed</span>
-                    </div>
-                  </div>
-                  <span className="label">picked</span>
-                  <span className="label">complete</span>
-                  <button className="btn btn-ghost btn-sm" onClick={e => { e.stopPropagation(); onReopen(d.id) }} style={{ justifySelf: 'end' }}>Reopen</button>
-                </div>
-              ))}
+              {closed.map(d => <HomeRow key={d.id} d={d} onClick={() => onOpen(d.id)} onReopen={() => onReopen(d.id)} />)}
             </div>
           </div>
         )}
@@ -618,56 +625,83 @@ function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, onDelete,
   )
 }
 
-function HomeRow({ d, idx, onClick, onDelete }) {
+function HomeRow({ d, idx, onClick, onDelete, onReopen }) {
   const [hover, setHover] = useState(false)
+  const narrow = useMedia(NARROW)
+  const noHover = useMedia(NO_HOVER)
+  const closed = d.status === 'closed'
   const ranked = rankedOptions(d._options, d._scores, d._parameters)
   const { top: leading, gap, tied } = standing(ranked)
   const hasScores = ranked.some(o => o._total != null)
   const c = completeness(d._parameters, d._options, d._scores)
   const daysOpen = Math.max(1, Math.floor((Date.now() - new Date(d.created_at).getTime()) / 86400000))
-  const statusLabel = c.pct >= 0.7 ? 'ready to choose' : c.pct >= 0.35 ? 'still gathering' : 'just started'
+  const statusLabel = closed ? 'closed' : c.pct >= 0.7 ? 'ready to choose' : c.pct >= 0.35 ? 'still gathering' : 'just started'
   const kc = kindColor(d.type)
-  const statusColor = c.pct >= 0.7 ? 'var(--accent)' : c.pct >= 0.35 ? 'var(--warn)' : 'var(--ink-ghost)'
+  const statusColor = closed ? 'var(--ink-faint)' : c.pct >= 0.7 ? 'var(--accent)' : c.pct >= 0.35 ? 'var(--warn)' : 'var(--ink-ghost)'
+
+  const title = (
+    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', minWidth: 0, flex: 1 }}>
+      <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, background: kindSoft(d.type), border: `1px solid ${kc}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, marginTop: 1 }}>{kindEmoji(d.type)}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 15, fontWeight: 500 }}>{d.title?.trim() || <em style={{ color: 'var(--ink-faint)' }}>untitled question</em>}</span>
+          {!closed && (tied ? <Pill color="var(--neg)">tied</Pill> : gap != null && gap < 0.6 && <Pill color="var(--neg)">tight</Pill>)}
+          {c.pct === 0 && <Pill color="var(--ink-faint)">empty</Pill>}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
+          <Pill color={kc}>{d.type || 'custom'}</Pill>
+          <span className="label">{d._parameters.length}p × {d._options.length}o</span>
+        </div>
+      </div>
+    </div>
+  )
+  const lead = leading ? (
+    <div style={{ minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        {narrow && <span className="label">{closed ? 'picked' : 'leading'}</span>}
+        <span style={{ fontSize: 14, fontWeight: 500 }}>{tied ? `${leading.name || 'unnamed'} = ${ranked[1].name || 'unnamed'}` : (leading.name || 'unnamed')}</span>
+        <span className="mono" style={{ fontSize: 13, color: tied ? 'var(--ink-soft)' : 'var(--accent)' }}>{leading._total.toFixed(2)}</span>
+      </div>
+      {gap != null && !narrow && <span className="label" style={{ marginTop: 4, display: 'block' }}>{tied ? 'tied' : `+${gap.toFixed(2)} ahead`}</span>}
+    </div>
+  ) : (<span className="label">{hasScores ? 'not enough scores' : 'no scores yet'}</span>)
+  const progress = (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ flex: 1, height: 5, background: 'var(--rule-soft)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ width: `${c.pct * 100}%`, height: '100%', background: statusColor, transition: 'width 300ms, background 200ms' }} />
+        </div>
+        <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', minWidth: 32, textAlign: 'right' }}>{Math.round(c.pct * 100)}%</span>
+      </div>
+      <span className="label" style={{ marginTop: 6, display: 'block', color: statusColor }}>{statusLabel}</span>
+    </div>
+  )
+  // touch screens can't hover, so their row action is always shown
+  const action = closed
+    ? <button className="btn btn-ghost btn-sm" onClick={e => { e.stopPropagation(); onReopen() }}>Reopen</button>
+    : <button className="iconbtn" title="archive decision" aria-label="archive decision" style={{ color: 'var(--neg)' }} onClick={e => { e.stopPropagation(); if (confirm(`Archive "${d.title || 'untitled'}"?`)) onDelete() }}>×</button>
+  const age = <span className="mono" style={{ fontSize: 11, color: 'var(--ink-faint)' }}>{daysOpen}d</span>
+  const rowStyle = { borderBottom: '1px solid var(--rule-soft)', cursor: 'pointer', opacity: closed ? 0.75 : 1, background: hover ? kindSoft(d.type) : 'transparent', boxShadow: hover ? `inset 3px 0 0 ${kc}` : 'inset 0 0 0 transparent', transition: 'background 140ms, box-shadow 140ms' }
+
+  if (narrow) {
+    return (
+      <div onClick={onClick} style={{ ...rowStyle, padding: '14px 14px 14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>{title}{action}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>{lead}{!closed && age}</div>
+        {progress}
+      </div>
+    )
+  }
   return (
     <div onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{ display: 'grid', gridTemplateColumns: '36px 2.6fr 1.7fr 1.4fr 70px', gap: 16, alignItems: 'center', padding: '18px 18px', borderBottom: '1px solid var(--rule-soft)', cursor: 'pointer', background: hover ? kindSoft(d.type) : 'transparent', boxShadow: hover ? `inset 3px 0 0 ${kc}` : 'inset 0 0 0 transparent', transition: 'background 140ms, box-shadow 140ms' }}>
-      <span className="mono" style={{ fontSize: 12, color: kc }}>{String(idx).padStart(2, '0')}</span>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-        <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 9, background: kindSoft(d.type), border: `1px solid ${kc}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, marginTop: 1 }}>{kindEmoji(d.type)}</div>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 15, fontWeight: 500 }}>{d.title?.trim() || <em style={{ color: 'var(--ink-faint)' }}>untitled question</em>}</span>
-            {tied ? <Pill color="var(--neg)">tied</Pill> : gap != null && gap < 0.6 && <Pill color="var(--neg)">tight</Pill>}
-            {c.pct === 0 && <Pill color="var(--ink-faint)">empty</Pill>}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
-            <Pill color={kc}>{d.type || 'custom'}</Pill>
-            <span className="label">{d._parameters.length}p × {d._options.length}o</span>
-          </div>
-        </div>
-      </div>
-      {leading ? (
-        <div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>{tied ? `${leading.name || 'unnamed'} = ${ranked[1].name || 'unnamed'}` : (leading.name || 'unnamed')}</span>
-            <span className="mono" style={{ fontSize: 13, color: tied ? 'var(--ink-soft)' : 'var(--accent)' }}>{leading._total.toFixed(2)}</span>
-          </div>
-          {gap != null && <span className="label" style={{ marginTop: 4, display: 'block' }}>{tied ? 'tied' : `+${gap.toFixed(2)} ahead`}</span>}
-        </div>
-      ) : (<span className="label">{hasScores ? 'not enough scores' : 'no scores yet'}</span>)}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ flex: 1, height: 5, background: 'var(--rule-soft)', borderRadius: 3, overflow: 'hidden' }}>
-            <div style={{ width: `${c.pct * 100}%`, height: '100%', background: statusColor, transition: 'width 300ms, background 200ms' }} />
-          </div>
-          <span className="mono" style={{ fontSize: 11, color: 'var(--ink-soft)', minWidth: 32, textAlign: 'right' }}>{Math.round(c.pct * 100)}%</span>
-        </div>
-        <span className="label" style={{ marginTop: 6, display: 'block', color: statusColor }}>{statusLabel}</span>
-      </div>
-      <span className="mono" style={{ fontSize: 11, color: 'var(--ink-faint)', textAlign: 'right' }}>
-        {hover
-          ? <button className="iconbtn" title="archive decision" style={{ color: 'var(--neg)' }} onClick={e => { e.stopPropagation(); if (confirm(`Archive "${d.title || 'untitled'}"?`)) onDelete() }}>×</button>
-          : `${daysOpen}d`}
+      style={{ ...rowStyle, display: 'grid', gridTemplateColumns: '36px 2.6fr 1.7fr 1.4fr 80px', gap: 16, alignItems: 'center', padding: closed ? '14px 18px' : '18px 18px' }}>
+      <span className="mono" style={{ fontSize: 12, color: closed ? 'var(--ink-faint)' : kc }}>{closed ? '—' : String(idx).padStart(2, '0')}</span>
+      {title}
+      {lead}
+      {progress}
+      <span style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 6 }}>
+        {closed || hover || noHover ? action : null}
+        {!closed && !(hover && !noHover) && age}
       </span>
     </div>
   )
@@ -690,6 +724,14 @@ function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHu
   const [view, setView] = useState('tiers') // 'tiers' | 'fine'
   const [dragId, setDragId] = useState(null)
   const [overLane, setOverLane] = useState(null)
+  // tap-to-move (touch screens can't drag): tap a chip to pick it, tap a lane to drop it
+  const [picked, setPicked] = useState(null)
+  const narrow = useMedia(NARROW)
+  const noHover = useMedia(NO_HOVER)
+  const moveTo = (id, t) => {
+    const pp = parameters.find(p => p.id === id)
+    if (pp && tierOf(curW(pp)).key !== t.key) setW(pp, t.value)
+  }
   const setW = (pp, v) => {
     setOverrides(prev => {
       const next = { ...(prev || {}) }
@@ -718,16 +760,16 @@ function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHu
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span className="label" style={isWhatIf ? { color: 'var(--hi)' } : undefined}>weights — what matters most?</span>
             {isWhatIf && <Pill color="var(--hi)">unsaved</Pill>}
-            <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>{open ? (view === 'tiers' ? 'drag onto a lane to set its weight; fine-tune in Fine' : 'tap −/+ or drag the slider') : 'higher = matters more'}</span>
+            <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>{open ? (view === 'tiers' ? (picked ? 'now tap a lane to move it there' : noHover ? 'tap a chip, then a lane, to set its weight' : 'drag (or tap) onto a lane to set its weight') : 'tap −/+ or drag the slider') : 'higher = matters more'}</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             {isWhatIf && <button className="btn btn-outline btn-sm" onClick={onReset}>Reset</button>}
             {isWhatIf && <button className="btn btn-accent btn-sm" onClick={onSave}>Save weights</button>}
             {open && parameters.length > 0 && (
               <div style={{ display: 'flex', gap: 2, padding: 2, background: 'var(--bg-inset)', borderRadius: 8, marginRight: 2 }}>
                 {[{ id: 'tiers', label: '⠿ Tiers' }, { id: 'fine', label: '⊹ Fine' }].map(s => (
                   <button key={s.id} onClick={() => setView(s.id)}
-                    style={{ padding: '5px 11px', fontSize: 12, fontWeight: 500, borderRadius: 6, border: 'none', background: view === s.id ? 'var(--bg)' : 'transparent', color: view === s.id ? 'var(--ink)' : 'var(--ink-soft)', boxShadow: view === s.id ? 'var(--shadow-sm)' : 'none' }}>{s.label}</button>
+                    style={{ padding: '5px 11px', fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', borderRadius: 6, border: 'none', background: view === s.id ? 'var(--bg)' : 'transparent', color: view === s.id ? 'var(--ink)' : 'var(--ink-soft)', boxShadow: view === s.id ? 'var(--shadow-sm)' : 'none' }}>{s.label}</button>
                 ))}
               </div>
             )}
@@ -778,26 +820,30 @@ function WeightPanel({ parameters, overrides, setOverrides, paramColors, paramHu
             {TIERS.map(t => {
               const chips = parameters.filter(pp => tierOf(curW(pp)).key === t.key)
               const active = overLane === t.key
+              const target = picked && tierOf(curW(parameters.find(p => p.id === picked))).key !== t.key
               return (
                 <div key={t.key}
+                  onClick={() => { if (picked) { moveTo(picked, t); setPicked(null) } }}
                   onDragOver={e => { e.preventDefault(); if (overLane !== t.key) setOverLane(t.key) }}
                   onDragLeave={() => setOverLane(l => l === t.key ? null : l)}
-                  onDrop={e => { e.preventDefault(); const id = dragId || e.dataTransfer.getData('text/plain'); const pp = parameters.find(p => p.id === id); if (pp && tierOf(curW(pp)).key !== t.key) setW(pp, t.value); setDragId(null); setOverLane(null) }}
-                  style={{ display: 'grid', gridTemplateColumns: '152px 1fr', alignItems: 'stretch', border: `1px solid ${active ? `oklch(0.6 0.15 ${t.hue})` : 'var(--rule)'}`, borderRadius: 11, background: active ? `oklch(0.975 0.04 ${t.hue})` : 'var(--bg)', transition: 'border-color 120ms, background 120ms', minHeight: 52, overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, padding: '10px 14px', borderRight: '1px solid var(--rule-soft)', background: `oklch(0.97 0.055 ${t.hue})` }}>
+                  onDrop={e => { e.preventDefault(); moveTo(dragId || e.dataTransfer.getData('text/plain'), t); setDragId(null); setOverLane(null) }}
+                  style={{ display: 'grid', gridTemplateColumns: narrow ? '104px 1fr' : '152px 1fr', alignItems: 'stretch', border: `1px ${target ? 'dashed' : 'solid'} ${active || target ? `oklch(0.6 0.15 ${t.hue})` : 'var(--rule)'}`, borderRadius: 11, background: active ? `oklch(0.975 0.04 ${t.hue})` : 'var(--bg)', cursor: target ? 'pointer' : undefined, transition: 'border-color 120ms, background 120ms', minHeight: 52, overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, padding: narrow ? '10px 10px' : '10px 14px', borderRight: '1px solid var(--rule-soft)', background: `oklch(0.97 0.055 ${t.hue})` }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: `oklch(0.42 0.13 ${t.hue})` }}>{t.label}</span>
                     <span className="label" style={{ color: `oklch(0.52 0.1 ${t.hue})` }}>weight {t.range}</span>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, alignItems: 'center', padding: '8px 12px' }}>
-                    {chips.length === 0 && <span className="label" style={{ opacity: 0.45 }}>{active ? 'release to drop' : 'drop here'}</span>}
+                    {chips.length === 0 && <span className="label" style={{ opacity: target ? 0.9 : 0.45 }}>{active ? 'release to drop' : target ? 'tap to move here' : 'drop here'}</span>}
                     {chips.map(pp => {
                       const c = paramColors[pp.id]; const over = isOver(pp)
                       return (
                         <div key={pp.id} draggable
                           onDragStart={e => { setDragId(pp.id); e.dataTransfer.setData('text/plain', pp.id); e.dataTransfer.effectAllowed = 'move' }}
                           onDragEnd={() => { setDragId(null); setOverLane(null) }}
+                          onClick={e => { e.stopPropagation(); setPicked(id => id === pp.id ? null : pp.id) }}
+                          aria-pressed={picked === pp.id}
                           onMouseEnter={() => setHighlight(pp.id)} onMouseLeave={() => setHighlight(null)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 9, background: 'var(--bg)', border: `1px solid ${over ? 'var(--hi)' : (highlight === pp.id ? c : 'var(--rule)')}`, boxShadow: 'var(--shadow-sm)', cursor: 'grab', opacity: dragId === pp.id ? 0.35 : 1, transition: 'opacity 120ms' }}>
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 9, background: picked === pp.id ? `color-mix(in oklch, ${c} 14%, var(--bg))` : 'var(--bg)', border: `1px solid ${picked === pp.id ? c : over ? 'var(--hi)' : (highlight === pp.id ? c : 'var(--rule)')}`, boxShadow: picked === pp.id ? `0 0 0 3px color-mix(in oklch, ${c} 30%, transparent)` : 'var(--shadow-sm)', cursor: 'grab', opacity: dragId === pp.id ? 0.35 : 1, transition: 'opacity 120ms' }}>
                           <span style={{ width: 9, height: 9, borderRadius: 3, background: c, flexShrink: 0 }} />
                           <span style={{ fontSize: 13, fontWeight: 500 }}>{pp.name}</span>
                           <span className="mono" title={over ? `was ${fmtWeight(Number(pp.weight))}` : undefined} style={{ fontSize: 12, fontWeight: 600, color: over ? 'var(--hi)' : 'var(--ink-soft)' }}>{fmtWeight(curW(pp))}</span>
@@ -846,12 +892,13 @@ function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, op
   }
 
   const kh = kindHue(decision.type)
+  const narrow = useMedia(NARROW)
   return (
     <div style={{
       minHeight: '100vh',
       background: `radial-gradient(1100px 460px at 50% -120px, oklch(0.93 0.06 ${kh} / 0.7), transparent 65%), linear-gradient(180deg, oklch(0.96 0.03 ${kh} / 0.45), transparent 340px)`,
     }}>
-      <main style={{ maxWidth: 1280, margin: '0 auto', padding: '28px 28px 80px' }}>
+      <main style={{ maxWidth: 1280, margin: '0 auto', padding: narrow ? '16px 16px 64px' : '28px 28px 80px' }}>
         {/* title + actions */}
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap', marginBottom: 24 }}>
           <div style={{ flex: '1 1 320px' }}>
@@ -995,8 +1042,13 @@ function StandingsList({ ranked, baseline, optionHandlers, optColors, ...shared 
   ))
 }
 
+// rank · name + bar · total · delete
+const standingsCols = narrow => narrow ? '26px 1fr 62px 28px' : '40px 1fr 100px 36px'
+
 function LeaderRow({ option, rank, parameters, scores, paramColors, optColor, leaderId, overrides, highlight, onHighlight, baselineRank, isWhatIf, onRename, onDelete }) {
   const [hover, setHover] = useState(false)
+  const narrow = useMedia(NARROW)
+  const noHover = useMedia(NO_HOVER)
   const [pulse, setPulse] = useState(false)
   const prevRank = useRef(rank)
   useEffect(() => {
@@ -1017,11 +1069,11 @@ function LeaderRow({ option, rank, parameters, scores, paramColors, optColor, le
   const incomplete = option._scored < option._active
   return (
     <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{ display: 'grid', gridTemplateColumns: '40px 1fr 100px 36px', gap: 16, alignItems: 'center', padding: '18px 22px', borderBottom: '1px solid var(--rule-soft)',
+      style={{ display: 'grid', gridTemplateColumns: standingsCols(narrow), gap: narrow ? 10 : 16, alignItems: 'center', padding: narrow ? '14px 12px' : '18px 22px', borderBottom: '1px solid var(--rule-soft)',
         background: isTop ? (isWhatIf ? 'linear-gradient(90deg, var(--hi-soft), transparent 70%)' : 'linear-gradient(90deg, var(--accent-soft), transparent 70%)') : (hover ? 'var(--bg-soft)' : 'transparent'),
         boxShadow: isTop ? `inset 4px 0 0 ${isWhatIf ? 'var(--hi)' : 'var(--accent)'}` : (pulse ? `inset 3px 0 0 ${optColor}` : 'inset 0 0 0 transparent'),
         transition: 'background 150ms, box-shadow 500ms' }}>
-      <span className="mono" style={{ fontSize: 22, fontWeight: 600, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent)') : 'var(--ink-faint)' }}>{option._ranked ? String(rank + 1).padStart(2, '0') : '––'}</span>
+      <span className="mono" style={{ fontSize: narrow ? 16 : 22, fontWeight: 600, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent)') : 'var(--ink-faint)' }}>{option._ranked ? String(rank + 1).padStart(2, '0') : '––'}</span>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
           <span style={{ width: 9, height: 9, borderRadius: '50%', background: optColor, alignSelf: 'center', flexShrink: 0 }} />
@@ -1046,13 +1098,13 @@ function LeaderRow({ option, rank, parameters, scores, paramColors, optColor, le
         </div>
       </div>
       <div style={{ textAlign: 'right' }}>
-        <span className="mono" style={{ fontSize: 26, fontWeight: 500, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent)') : option._ranked ? 'var(--ink)' : 'var(--ink-faint)', transition: 'color 200ms' }}>
+        <span className="mono" style={{ fontSize: narrow ? 20 : 26, fontWeight: 500, color: isTop ? (isWhatIf ? 'var(--hi)' : 'var(--accent)') : option._ranked ? 'var(--ink)' : 'var(--ink-faint)', transition: 'color 200ms' }}>
           {option._total != null ? option._total.toFixed(2) : '—'}
         </span>
         <div style={{ marginTop: 2 }}><span className="label">{option._ranked || option._total == null ? 'of 10' : 'not ranked'}</span></div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        {hover && <button className="iconbtn" onClick={onDelete} title="remove option">×</button>}
+        {(hover || noHover || narrow) && <button className="iconbtn" onClick={onDelete} title="remove option" aria-label="remove option">×</button>}
       </div>
     </div>
   )
@@ -1079,9 +1131,10 @@ function Legend({ parameters, paramColors, highlight, onHighlight, overrides }) 
 
 function AddOptionRow({ onAdd }) {
   const [draft, setDraft] = useState('')
+  const narrow = useMedia(NARROW)
   const commit = () => { if (draft.trim()) { onAdd(draft.trim()); setDraft('') } }
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 100px 36px', gap: 16, alignItems: 'center', padding: '14px 22px', borderBottom: '1px solid var(--rule-soft)', background: 'var(--bg-soft)' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: standingsCols(narrow), gap: narrow ? 10 : 16, alignItems: 'center', padding: narrow ? '14px 12px' : '14px 22px', borderBottom: '1px solid var(--rule-soft)', background: 'var(--bg-soft)' }}>
       <span className="label">+</span>
       <input value={draft} onChange={e => setDraft(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') commit() }} onBlur={commit}
@@ -1096,12 +1149,13 @@ function AddOptionRow({ onAdd }) {
 // MATRIX
 // =============================================================================
 function Matrix({ parameters, options, scores, paramColors, optColors, highlight, setHighlight, onScoreUpdate, paramHandlers, optionHandlers, overrides, onEditWeights }) {
+  const narrow = useMedia(NARROW)
   const [addParamDraft, setAddParamDraft] = useState('')
   return (
     <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 720 }}>
       <thead>
         <tr style={{ background: 'var(--bg-soft)', borderBottom: '1px solid var(--rule)' }}>
-          <th style={{ padding: '12px 18px', textAlign: 'left', minWidth: 200, position: 'sticky', left: 0, background: 'var(--bg-soft)', zIndex: 2 }}><span className="label">consideration</span></th>
+          <th style={{ padding: narrow ? '12px 12px' : '12px 18px', textAlign: 'left', minWidth: narrow ? 130 : 200, position: 'sticky', left: 0, background: 'var(--bg-soft)', zIndex: 2 }}><span className="label">consideration</span></th>
           <th style={{ padding: '12px 12px', textAlign: 'left', width: 60 }}><span className="label">w</span></th>
           {options.map((o, oi) => (
             <th key={o.id} style={{ padding: '12px 12px', textAlign: 'left', minWidth: 160, borderTop: `2px solid ${optColors[o.id]}` }}>
