@@ -6,11 +6,29 @@ and see which comes out ahead and how robust that lead is.
 
 ## Layout
 
+React 18 + Supabase, built with Vite.
+
 | Path | What it is |
 |---|---|
-| `index.html` | The whole app: React 18 + Supabase client, JSX compiled in the browser by Babel. Served as a static page. |
+| `index.html` | Page shell; Vite injects the built script. |
+| `src/main.jsx`, `src/App.jsx` | Startup, app state, data loading and saving. |
+| `src/lib/scoring.js` | All the decision maths: weighted totals, ranking, ties, robustness, sensitivity. Tested in `scoring.test.js`. |
+| `src/lib/` | Also the Supabase client, theme colours, small UI helpers. |
+| `src/components/` | Shared pieces, header, sign-in. |
+| `src/views/` | Home, the decision page (`decision/`), What-if, Blind mode. |
 | `supabase/migrations/` | Database changes, in order. |
 | `supabase/functions/cross-check/` | Edge Function behind the per-cell "cross-check" button. Asks Claude to challenge one score. |
+
+## Developing
+
+Needs Node 22.12 or newer.
+
+```sh
+npm install
+npm run dev      # local server with live reload
+npm test         # scoring unit tests
+npm run build    # production build into dist/
+```
 
 ## Backend
 
@@ -24,6 +42,6 @@ Redirect URLs, or Google sign-in returns to a different app.
 
 ## Deploying
 
-- **App:** push to `main`.
+- **App:** push to `main`. `.github/workflows/deploy.yml` runs the tests, builds, and publishes `dist/` to GitHub Pages. Pull requests run the tests and build without publishing. Pages must be set to deploy from GitHub Actions (Settings → Pages → Source).
 - **Database:** run new files in `supabase/migrations/` in the Supabase SQL Editor (or `supabase db push`).
 - **cross-check:** `supabase functions deploy cross-check` with JWT verification **on**. It needs the `ANTHROPIC_API_KEY` secret. It takes `{ option_id, parameter_id }`, not a prompt, and reads rows with the caller's token, so it only works on the caller's own decisions.
