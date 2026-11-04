@@ -37,7 +37,7 @@ export function WhatIfOverlay({ data, onClose }) {
             </div>
           )}
           {robust != null && baseTop && (
-            <div style={{ padding: '24px 28px', background: 'var(--ink)', color: 'var(--bg)', borderRadius: 8, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 32, alignItems: 'center', marginBottom: 28 }}>
+            <div style={{ padding: '24px 28px', background: 'var(--chrome-2)', color: '#fff', borderRadius: 8, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 32, alignItems: 'center', marginBottom: 28 }}>
               <div>
                 <span className="label" style={{ color: 'oklch(0.7 0.05 240)' }}>robustness</span>
                 <div style={{ fontSize: 56, fontWeight: 500, lineHeight: 1, marginTop: 6 }}>{robust.toFixed(2)}</div>

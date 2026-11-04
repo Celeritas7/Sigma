@@ -5,9 +5,9 @@
 export const LOOKBACK_DAYS = 90
 
 export const OUTCOMES = [
-  { key: 'good',   label: 'Good call',   emoji: '👍', color: 'var(--accent)',  text: 'var(--accent-text)' },
-  { key: 'mixed',  label: 'Mixed',       emoji: '🤷', color: 'var(--warn)',    text: 'var(--warn-text)' },
-  { key: 'regret', label: 'Regret it',   emoji: '👎', color: 'var(--neg)',     text: 'var(--neg)' },
+  { key: 'good',   label: 'Good call',   emoji: '👍', color: 'var(--accent-fill)', text: 'var(--accent-text)', on: '#fff' },
+  { key: 'mixed',  label: 'Mixed',       emoji: '🤷', color: 'var(--warn)',     text: 'var(--warn-text)',   on: 'var(--on-warn)' },
+  { key: 'regret', label: 'Regret it',   emoji: '👎', color: 'var(--neg-fill)', text: 'var(--neg)',         on: '#fff' },
 ]
 
 export function outcomeDef(key) { return OUTCOMES.find(o => o.key === key) || null }

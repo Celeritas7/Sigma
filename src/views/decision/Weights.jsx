@@ -48,7 +48,7 @@ export function WeightPanel({ parameters, overrides, setOverrides, paramColors, 
   const curW = pp => overrides?.[pp.id] ?? Number(pp.weight)
   const isOver = pp => overrides?.[pp.id] != null && Math.abs(overrides[pp.id] - Number(pp.weight)) > 0.01
   return (
-    <div className="card" style={{ background: isWhatIf ? 'var(--hi-soft)' : `oklch(0.96 0.03 ${kh})`, borderColor: isWhatIf ? 'var(--hi)' : `oklch(0.88 0.05 ${kh})`, transition: 'background 200ms' }}>
+    <div className="card" style={{ background: isWhatIf ? 'var(--hi-soft)' : `oklch(var(--tone-tint) 0.03 ${kh})`, borderColor: isWhatIf ? 'var(--hi)' : `oklch(var(--tone-line) 0.05 ${kh})`, transition: 'background 200ms' }}>
       <div style={{ padding: '12px 18px 14px' }}>
         {/* header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -101,7 +101,7 @@ export function WeightPanel({ parameters, overrides, setOverrides, paramColors, 
                     <span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.25 }}>{pp.name}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <WeightStep value={cur} color={over ? 'var(--hi)' : c} onChange={v => setW(pp, v)} label={`${pp.name} weight`} />
+                    <WeightStep value={cur} color={over ? 'var(--hi)' : `oklch(var(--tone-text) 0.13 ${paramHues[i % paramHues.length]})`} onChange={v => setW(pp, v)} label={`${pp.name} weight`} />
                     <div style={{ flex: 1 }}>
                       <WeightSlider label={`${pp.name} weight`} value={cur} original={Number(pp.weight)} ghostMark={isWhatIf} hue={over ? 260 : paramHues[i % paramHues.length]} onChange={v => setW(pp, v)} />
                     </div>
@@ -122,10 +122,10 @@ export function WeightPanel({ parameters, overrides, setOverrides, paramColors, 
                   onDragOver={e => { e.preventDefault(); if (overLane !== t.key) setOverLane(t.key) }}
                   onDragLeave={() => setOverLane(l => l === t.key ? null : l)}
                   onDrop={e => { e.preventDefault(); moveTo(dragId || e.dataTransfer.getData('text/plain'), t); setDragId(null); setOverLane(null) }}
-                  style={{ display: 'grid', gridTemplateColumns: narrow ? '104px 1fr' : '152px 1fr', alignItems: 'stretch', border: `1px ${target ? 'dashed' : 'solid'} ${active || target ? `oklch(0.6 0.15 ${t.hue})` : 'var(--rule)'}`, borderRadius: 11, background: active ? `oklch(0.975 0.04 ${t.hue})` : 'var(--bg)', cursor: target ? 'pointer' : undefined, transition: 'border-color 120ms, background 120ms', minHeight: 52, overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, padding: narrow ? '10px 10px' : '10px 14px', borderRight: '1px solid var(--rule-soft)', background: `oklch(0.97 0.055 ${t.hue})` }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: `oklch(0.42 0.13 ${t.hue})` }}>{t.label}</span>
-                    <span className="label" style={{ color: `oklch(0.45 0.1 ${t.hue})` }}>weight {t.range}</span>
+                  style={{ display: 'grid', gridTemplateColumns: narrow ? '104px 1fr' : '152px 1fr', alignItems: 'stretch', border: `1px ${target ? 'dashed' : 'solid'} ${active || target ? `oklch(0.6 0.15 ${t.hue})` : 'var(--rule)'}`, borderRadius: 11, background: active ? `oklch(calc(var(--tone-tint) + 0.015) 0.04 ${t.hue})` : 'var(--bg)', cursor: target ? 'pointer' : undefined, transition: 'border-color 120ms, background 120ms', minHeight: 52, overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, padding: narrow ? '10px 10px' : '10px 14px', borderRight: '1px solid var(--rule-soft)', background: `oklch(calc(var(--tone-tint) + 0.01) 0.055 ${t.hue})` }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: `oklch(var(--tone-label) 0.13 ${t.hue})` }}>{t.label}</span>
+                    <span className="label" style={{ color: `oklch(calc(var(--tone-label) + 0.03) 0.1 ${t.hue})` }}>weight {t.range}</span>
                     {target && (
                       <button className="btn btn-outline btn-sm" style={{ marginTop: 6, padding: '3px 8px', alignSelf: 'flex-start' }}
                         aria-label={`Move ${parameters.find(p => p.id === picked)?.name} to ${t.label}`}

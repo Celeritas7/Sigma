@@ -18,7 +18,7 @@ export function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, on
         <div style={{
           position: 'relative', overflow: 'hidden', marginBottom: narrow ? 24 : 36,
           borderRadius: 18, padding: narrow ? '24px 20px 26px' : '40px 40px 44px',
-          background: 'linear-gradient(135deg, var(--ink-deep), var(--ink))',
+          background: 'linear-gradient(135deg, var(--chrome-1), var(--chrome-2))',
           color: '#fff', boxShadow: 'var(--shadow-lg)',
         }}>
           {/* colored glow accents */}

@@ -9,6 +9,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
+<!-- Light or dark before first paint, so a dark-mode user never sees a white
+     flash. Same rule as resolveTheme in src/lib/theme.js. -->
+<script>
+  try {
+    var p = localStorage.getItem('sigma_theme');
+    var dark = p === 'dark' || (p !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  } catch (_) { document.documentElement.dataset.theme = 'light'; }
+</script>
 <!-- GitHub Pages caches this page for 10 minutes, but each deploy renames the
      built script and stylesheet. A browser holding the old page then asks for
      files that no longer exist and shows nothing. If that happens, reload once

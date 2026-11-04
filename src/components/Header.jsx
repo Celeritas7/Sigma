@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { ACCENT_OPTIONS, applyAccent } from '../lib/theme'
+import { ACCENT_OPTIONS, THEME_PREFS, applyAccent, readThemePref, setThemePref } from '../lib/theme'
 import { NARROW, useMedia } from '../lib/ui'
 
 // =============================================================================
@@ -11,7 +11,8 @@ export function TopHeader({ middle, onHome, onNew, email, onSignOut }) {
     <header style={{
       padding: narrow ? '10px 16px' : '12px 22px',
       display: 'grid', gridTemplateColumns: narrow ? '1fr auto' : '1fr auto 1fr', alignItems: 'center', gap: narrow ? 8 : 16,
-      background: 'linear-gradient(100deg, var(--ink-deep), var(--ink))',
+      background: 'linear-gradient(100deg, var(--chrome-1), var(--chrome-2))',
+      borderBottom: '1px solid var(--chrome-edge)',
       color: '#fff', position: 'sticky', top: 0, zIndex: 30,
       boxShadow: 'var(--shadow-md)',
     }}>
@@ -43,6 +44,7 @@ export function AccentMenu() {
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
   const cur = localStorage.getItem('sigma_accent') || 'green'
+  const [theme, setTheme] = useState(readThemePref)
   useEffect(() => {
     if (!open) return
     const h = e => { if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false) }
@@ -51,16 +53,24 @@ export function AccentMenu() {
   }, [open])
   return (
     <div ref={rootRef} style={{ position: 'relative' }}>
-      <button onClick={() => setOpen(o => !o)} className="iconbtn" title="theme" aria-label="Accent colour" aria-expanded={open}>
+      <button onClick={() => setOpen(o => !o)} className="iconbtn" title="appearance" aria-label="Appearance" aria-expanded={open}>
         <span style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--accent)' }} />
       </button>
       {open && (
         <div onMouseLeave={() => setOpen(false)} style={{
           position: 'absolute', top: 36, right: 0, background: 'var(--bg)', border: '1px solid var(--rule)',
-          borderRadius: 8, padding: 10, zIndex: 100, boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          borderRadius: 8, padding: 10, zIndex: 100, boxShadow: 'var(--shadow-lg)',
           display: 'flex', gap: 6, flexDirection: 'column', minWidth: 130,
         }}>
-          <div className="label">accent</div>
+          <div className="label" id="theme-label">theme</div>
+          <div role="group" aria-labelledby="theme-label" style={{ display: 'flex', border: '1px solid var(--rule)', borderRadius: 7, overflow: 'hidden' }}>
+            {THEME_PREFS.map(p => (
+              <button key={p} aria-pressed={theme === p} onClick={() => { setThemePref(p); setTheme(p) }}
+                style={{ flex: 1, padding: '5px 9px', fontSize: 12, border: 'none', borderLeft: p === THEME_PREFS[0] ? 'none' : '1px solid var(--rule)',
+                  background: theme === p ? 'var(--ink)' : 'var(--bg)', color: theme === p ? 'var(--bg)' : 'var(--ink)', textTransform: 'capitalize' }}>{p}</button>
+            ))}
+          </div>
+          <div className="label" style={{ marginTop: 4 }}>accent</div>
           <div style={{ display: 'flex', gap: 6 }}>
             {ACCENT_OPTIONS.map(a => (
               <button key={a.name} onClick={() => { applyAccent(a.hue); localStorage.setItem('sigma_accent', a.name); setOpen(false) }}
