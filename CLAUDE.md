@@ -19,7 +19,9 @@ Open:
 - Home row number for 🏠 decisions is 4.12:1 contrast (needs 4.5:1).
 - Feature backlog, in order: dark mode, export.
 
-Note: after a deploy, a browser holding the cached page may show a blank page once; the guard in index.html reloads it. A hard refresh also works.
+Deploys: Pages is set to deploy from GitHub Actions (switched 2026-11-04). Before that it was set to deploy from the branch, so every merge also ran GitHub's own Jekyll deploy of the raw repo. That deploy usually finished last and served the unbuilt `index.html` (it loads `/src/main.jsx`), which is the "blank page after a deploy" seen on 2026-11-03/04. If a blank page comes back, first check that only "Build and deploy" ran for the merge, not also "pages build and deployment".
+
+Pages' CDN caches the page for up to 10 minutes, so right after a deploy a browser may still get the old page and ask for renamed `/assets/` files. The guard in index.html reloads once when that happens. A hard refresh also works.
 
 ## Shared project caveat
 Supabase project `wylxvmkcrexwfpjpbhyy` is shared with the owner's other apps. Security findings for those apps belong in their own repos, not here.
