@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Pill } from '../components/atoms'
 import { completeness, rankedOptions, standing } from '../lib/scoring'
-import { kindColor, kindEmoji, kindSoft } from '../lib/theme'
+import { kindColor, kindEmoji, kindSoft, kindText } from '../lib/theme'
 import { lookbackDue, lookbackTally, outcomeDef } from '../lib/lookback'
 import { NARROW, NO_HOVER, useMedia } from '../lib/ui'
 
@@ -183,7 +183,7 @@ export function HomeRow({ d, idx, onClick, onDelete, onReopen }) {
   return (
     <div onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{ ...rowStyle, display: 'grid', gridTemplateColumns: '36px 2.6fr 1.7fr 1.4fr 80px', gap: 16, alignItems: 'center', padding: closed ? '14px 18px' : '18px 18px' }}>
-      <span className="mono" style={{ fontSize: 12, color: closed ? 'var(--ink-faint)' : kc }}>{closed ? '—' : String(idx).padStart(2, '0')}</span>
+      <span className="mono" style={{ fontSize: 12, color: closed ? 'var(--ink-faint)' : kindText(d.type, d.title) }}>{closed ? '—' : String(idx).padStart(2, '0')}</span>
       {title}
       {lead}
       {progress}

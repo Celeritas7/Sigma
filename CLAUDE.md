@@ -11,12 +11,10 @@ Weighted decision-matrix app. Read `README.md` first for layout, backend and dep
 - Never deploy `cross-check` with JWT verification off; it also checks the user in code.
 
 ## State (2026-11-04)
-Done today: scoring fixes, owner-only RLS + Google sign-in, cross-check lockdown, tier lanes, layout, phone, accessibility, Vite build + tests + CI, decision icons, record-the-choice on close, look-back on closed decisions (outcome + note, 90-day reminder; `src/lib/lookback.js`), reload-once guard for stale cached pages after a deploy. Templates: New decision opens a picker (blank, six starters in `src/lib/templates.js`, the user's own); "Save as template" on a decision saves its considerations and weights to `sigma_templates` / `sigma_template_parameters`. No Supabase security warnings. Supabase sign-ups are off.
+Done today: scoring fixes, owner-only RLS + Google sign-in, cross-check lockdown, tier lanes, layout, phone, accessibility, Vite build + tests + CI, decision icons, record-the-choice on close, look-back on closed decisions (outcome + note, 90-day reminder; `src/lib/lookback.js`), reload-once guard for stale cached pages after a deploy. 2026-11-04: template and close-status migrations applied; the owner confirmed closing a decision and saving a template on the live site. Decision colours used as text go through `kindText` (contrast-tested for every kind in `theme.test.js`). Templates: New decision opens a picker (blank, six starters in `src/lib/templates.js`, the user's own); "Save as template" on a decision saves its considerations and weights to `sigma_templates` / `sigma_template_parameters`. No Supabase security warnings. Supabase sign-ups are off.
 
 Open:
 - Unverified on the live site: the cross-check button, and whether the header clips at the owner's window width.
-- Unconfirmed by hand on the live site (needs the owner's sign-in): closing a decision and saving a template. Both migrations, `20261103170000_sigma_templates_owner.sql` and `20261103180000_sigma_status_closed.sql`, were applied 2026-11-04 and checked in the database. Closing failed before the second one, because the status check didn't allow `'closed'`.
-- Home row number for 🏠 decisions is 4.12:1 contrast (needs 4.5:1).
 - Feature backlog, in order: dark mode, export.
 
 Deploys: Pages is set to deploy from GitHub Actions (switched 2026-11-04). Before that it was set to deploy from the branch, so every merge also ran GitHub's own Jekyll deploy of the raw repo. That deploy usually finished last and served the unbuilt `index.html` (it loads `/src/main.jsx`), which is the "blank page after a deploy" seen on 2026-11-03/04. If a blank page comes back, first check that only "Build and deploy" ran for the merge, not also "pages build and deployment".
