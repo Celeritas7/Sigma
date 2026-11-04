@@ -53,3 +53,14 @@ export function useDialogFocus(ref) {
 
 // weights move in 0.5 steps: show 7 as "7" and 7.5 as "7.5", never rounded
 export function fmtWeight(w) { return Number.isInteger(w) ? String(w) : w.toFixed(1) }
+
+// Hand the browser a file to save. The object URL is freed once the click
+// has been handled.
+export function downloadFile(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }))
+  const a = Object.assign(document.createElement('a'), { href: url, download: name })
+  document.body.append(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}

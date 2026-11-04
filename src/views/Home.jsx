@@ -8,8 +8,9 @@ import { NARROW, NO_HOVER, useMedia } from '../lib/ui'
 // =============================================================================
 // HOME
 // =============================================================================
-export function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, onDelete, onReopen }) {
+export function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, onDelete, onReopen, onBackup }) {
   const narrow = useMedia(NARROW)
+  const [backingUp, setBackingUp] = useState(false)
   const open = decisions.filter(d => d.status !== 'closed' && d.status !== 'archived')
   const closed = decisions.filter(d => d.status === 'closed')
   return (
@@ -91,6 +92,16 @@ export function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, on
           </div>
           )
         })()}
+        {!loading && !loadError && (
+          <section aria-labelledby="backup-label" style={{ marginTop: 40, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span className="label" id="backup-label">your data</span>
+            <button className="btn btn-outline btn-sm" disabled={backingUp}
+              onClick={async () => { setBackingUp(true); try { await onBackup() } finally { setBackingUp(false) } }}>
+              {backingUp ? 'Preparing…' : 'Download backup (JSON)'}
+            </button>
+            <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>Every decision, including archived ones, with its scores, plus your templates. To get one decision as a spreadsheet, open it and use Export CSV.</span>
+          </section>
+        )}
       </main>
     </div>
   )
