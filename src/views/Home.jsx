@@ -1,9 +1,11 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Pill } from '../components/atoms'
 import { completeness, rankedOptions, standing } from '../lib/scoring'
 import { kindColor, kindEmoji, kindSoft, kindText } from '../lib/theme'
 import { lookbackDue, lookbackTally, outcomeDef } from '../lib/lookback'
 import { NARROW, NO_HOVER, useMedia } from '../lib/ui'
+import { filterDecisions, isFiltering, kindCounts, readFilter, saveFilter } from '../lib/homeFilter'
+import { HomeFilters } from './HomeFilters'
 
 // =============================================================================
 // HOME
@@ -14,6 +16,15 @@ export function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, on
   const fileRef = useRef(null)
   const open = decisions.filter(d => d.status !== 'closed' && d.status !== 'archived')
   const closed = decisions.filter(d => d.status === 'closed')
+  // search and filters; the hero counts above stay unfiltered
+  const [filter, setFilter] = useState(readFilter)
+  useEffect(() => saveFilter(filter), [filter])
+  const kinds = kindCounts(decisions)
+  // a remembered kind that no longer exists would hide everything: drop it
+  const activeFilter = filter.kind && !kinds.some(k => k.label === filter.kind) ? { ...filter, kind: null } : filter
+  const filtering = isFiltering(activeFilter)
+  const shown = filterDecisions(decisions, activeFilter)
+  const nShown = shown.open.length + shown.closed.length
   return (
     <div>
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: narrow ? '20px 16px 48px' : '40px 28px 64px' }}>
@@ -47,6 +58,17 @@ export function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, on
             <button className="btn btn-outline btn-sm" onClick={onRetry}>Retry</button>
           </div>
         )}
+        {!loading && open.length + closed.length > 0 && (
+          <HomeFilters filter={activeFilter} setFilter={setFilter} kinds={kinds} shown={nShown} total={open.length + closed.length} />
+        )}
+        {filtering && nShown === 0 ? (
+          <div className="card" style={{ padding: '40px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontSize: 16, fontWeight: 500 }}>Nothing matches{activeFilter.query.trim() ? <> “{activeFilter.query.trim()}”</> : ''}.</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-soft)' }}>Search looks in titles, options, considerations and your notes.</div>
+            <button className="btn btn-outline btn-sm" onClick={() => setFilter({ query: '', kind: null, show: 'all' })}>Clear filters</button>
+          </div>
+        ) : <>
+        {activeFilter.show !== 'closed' && <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
           <span className="label">open</span>
           <button className="btn btn-primary" onClick={onNew}>
@@ -61,6 +83,8 @@ export function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, on
           )}
           {loading ? (
             <div style={{ padding: 48, textAlign: 'center' }}><span className="label">loading…</span></div>
+          ) : filtering && shown.open.length === 0 ? (
+            <div style={{ padding: '28px 24px', textAlign: 'center' }}><span style={{ fontSize: 13, color: 'var(--ink-soft)' }}>No open decisions match.</span></div>
           ) : open.length === 0 ? (
             <div style={{ padding: '56px 32px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
               <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--bg-inset)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 600, color: 'var(--ink-faint)' }}>Σ</div>
@@ -75,24 +99,26 @@ export function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, on
               </button>
             </div>
           ) : (
-            open.map((d, i) => <HomeRow key={d.id} d={d} idx={i + 1} onClick={() => onOpen(d.id)} onDelete={() => onDelete(d.id)} />)
+            shown.open.map((d, i) => <HomeRow key={d.id} d={d} idx={i + 1} onClick={() => onOpen(d.id)} onDelete={() => onDelete(d.id)} />)
           )}
         </div>
-        {closed.length > 0 && (() => {
+        </>}
+        {shown.closed.length > 0 && (() => {
           const t = lookbackTally(closed)
           return (
-          <div style={{ marginTop: 40 }}>
+          <div style={{ marginTop: activeFilter.show === 'closed' ? 0 : 40 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
               <span className="label">recently closed</span>
               {t.reviewed > 0 && <span className="label" style={{ color: 'var(--accent-text)' }}>happy with {t.good} of {t.reviewed} looked back on</span>}
               {t.due > 0 && <Pill color="var(--warn)">{t.due} due for a look back</Pill>}
             </div>
             <div className="card" style={{ marginTop: 12, overflow: 'hidden', background: 'var(--bg-soft)' }}>
-              {closed.map(d => <HomeRow key={d.id} d={d} onClick={() => onOpen(d.id)} onReopen={() => onReopen(d.id)} />)}
+              {shown.closed.map(d => <HomeRow key={d.id} d={d} onClick={() => onOpen(d.id)} onReopen={() => onReopen(d.id)} />)}
             </div>
           </div>
           )
         })()}
+        </>}
         {!loading && !loadError && (
           <section aria-labelledby="backup-label" style={{ marginTop: 40, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <span className="label" id="backup-label">your data</span>
