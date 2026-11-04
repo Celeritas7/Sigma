@@ -48,4 +48,4 @@ Redirect URLs, or Google sign-in returns to a different app.
 
 - **App:** push to `main`. `.github/workflows/deploy.yml` runs the tests, builds, and publishes `dist/` to GitHub Pages. Pull requests run the tests and build without publishing. Pages must be set to deploy from GitHub Actions (Settings → Pages → Source).
 - **Database:** run new files in `supabase/migrations/` in the Supabase SQL Editor (or `supabase db push`).
-- **cross-check:** `supabase functions deploy cross-check` with JWT verification **on**. It needs the `ANTHROPIC_API_KEY` secret. It takes `{ option_id, parameter_id }`, not a prompt, and reads rows with the caller's token, so it only works on the caller's own decisions.
+- **cross-check:** `supabase functions deploy cross-check --no-verify-jwt`; the function checks the signed-in user itself (`auth.getUser`) before doing anything. The same code lives in the Akatsuki hub repo; keep the two in step. It needs the `ANTHROPIC_API_KEY` secret. It takes `{ option_id, parameter_id }`, not a prompt, and reads rows with the caller's token, so it only works on the caller's own decisions.
