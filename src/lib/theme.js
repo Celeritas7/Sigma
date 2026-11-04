@@ -46,6 +46,10 @@ export function kindEmoji(kind, title) { return kindDef(kind, title).emoji }
 export function kindHue(kind, title) { return kindDef(kind, title).hue }
 export function kindColor(kind, title) { return `oklch(0.56 0.15 ${kindHue(kind, title)})` }
 export function kindSoft(kind, title) { return `oklch(0.94 0.05 ${kindHue(kind, title)})` }
+// kindColor is for borders and fills; text needs this darker shade to reach
+// 4.5:1 on both the page and kindSoft (a hovered row). Checked in theme.test.js.
+export const KIND_TEXT_L = 0.48
+export function kindText(kind, title) { return `oklch(${KIND_TEXT_L} 0.15 ${kindHue(kind, title)})` }
 // option palette — distinct, evenly-spread hues, muted enough to coexist
 export const OPTION_HUES = [255, 25, 155, 305, 75, 200, 340, 120, 285, 45]
 export function optionColor(i) { return `oklch(0.6 0.14 ${OPTION_HUES[i % OPTION_HUES.length]})` }
