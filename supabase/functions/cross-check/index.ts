@@ -10,12 +10,22 @@
 //
 //   body:    { option_id: uuid, parameter_id: uuid }
 //   returns: { text: "..." }
+//
+// 2026-11-04: moved from claude-haiku-4-5 to claude-opus-5-5. Opus 5.5 always
+// thinks (it can't be turned off), and the thinking counts toward max_tokens,
+// so max_tokens is sized for thinking plus the short reply. Effort is the
+// speed/cost dial: 'low' keeps the popup quick; raise to 'medium' (the
+// model's default) if the critiques feel thin. A safety decline
+// (stop_reason 'refusal') is retried server-side on Anthropic's recommended
+// fallback model; if the whole chain declines, the caller gets an error.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
-const MODEL = 'claude-haiku-4-5';
-const MAX_TOKENS = 1024;
+const MODEL = 'claude-opus-5-5';
+const EFFORT = 'low';
+// thinking + a 3-5 bullet reply; thinking text isn't returned but is counted
+const MAX_TOKENS = 8000;
 // Keys (2026-10-28 key migration): publishable key, legacy anon fallback.
 const PUBLIC_KEY = (() => { try { return JSON.parse(Deno.env.get('SUPABASE_PUBLISHABLE_KEYS') || '{}').default; } catch { return null; } })() || Deno.env.get('SUPABASE_ANON_KEY')!;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -99,12 +109,25 @@ Deno.serve(async (req) => {
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: MODEL, max_tokens: MAX_TOKENS, messages: [{ role: 'user', content: buildPrompt(param, option, score, peers) }] }),
+      headers: {
+        'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01',
+        // re-run a safety decline on Anthropic's recommended fallback model
+        'anthropic-beta': 'server-side-fallback-2026-07-01',
+      },
+      body: JSON.stringify({
+        model: MODEL, max_tokens: MAX_TOKENS,
+        output_config: { effort: EFFORT },
+        fallbacks: 'default',
+        messages: [{ role: 'user', content: buildPrompt(param, option, score, peers) }],
+      }),
     });
     if (!resp.ok) return json({ error: `anthropic ${resp.status}`, detail: await resp.text() }, 502);
     const data = await resp.json();
-    const text = (data?.content ?? []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n');
+    // check why it stopped before reading content: a refusal has no usable text
+    if (data?.stop_reason === 'refusal') return json({ error: "Claude declined to review this score. Try rewording the evidence." }, 502);
+    // content also holds thinking blocks (empty text) and, after a fallback, a fallback block: keep only text
+    const text = (data?.content ?? []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n').trim();
+    if (!text) return json({ error: data?.stop_reason === 'max_tokens' ? 'The answer was cut off. Try again.' : 'Claude returned no text. Try again.' }, 502);
     return json({ text });
   } catch (e) {
     return json({ error: 'proxy failed', detail: String((e as Error)?.message ?? e) }, 500);
