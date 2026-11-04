@@ -48,7 +48,7 @@ export function Outcome({ decision, onSave }) {
           const on = pick === o.key
           return (
             <button key={o.key} type="button" aria-pressed={on} onClick={() => setPick(o.key)} className="btn btn-sm"
-              style={{ background: on ? o.color : 'var(--bg)', color: on ? '#fff' : 'var(--ink)', borderColor: on ? o.color : 'var(--rule)' }}>
+              style={{ background: on ? o.color : 'var(--bg)', color: on ? o.on : 'var(--ink)', borderColor: on ? o.color : 'var(--rule)' }}>
               <span aria-hidden="true">{o.emoji}</span> {o.label}
             </button>
           )

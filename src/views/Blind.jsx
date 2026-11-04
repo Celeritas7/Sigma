@@ -127,7 +127,7 @@ export function BlindCard({ letter, option, score, param, revealed, passValue, o
           const on = passValue === v
           return (
             <button key={v} onClick={() => onScore(v)} className="mono" aria-pressed={on}
-              style={{ padding: '6px 11px', background: on ? 'var(--accent)' : 'var(--bg)', border: `1px solid ${on ? 'var(--accent)' : 'var(--rule)'}`, fontSize: 11, borderRadius: 4, color: on ? '#fff' : 'var(--ink)', fontWeight: on ? 600 : 400 }}
+              style={{ padding: '6px 11px', background: on ? 'var(--accent-fill)' : 'var(--bg)', border: `1px solid ${on ? 'var(--accent-fill)' : 'var(--rule)'}`, fontSize: 11, borderRadius: 4, color: on ? '#fff' : 'var(--ink)', fontWeight: on ? 600 : 400 }}
               onMouseEnter={e => { if (!on) { e.currentTarget.style.background = 'var(--ink)'; e.currentTarget.style.color = 'var(--bg)' } }}
               onMouseLeave={e => { if (!on) { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--ink)' } }}
             >{v}</button>

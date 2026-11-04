@@ -50,7 +50,7 @@ export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandl
   return (
     <div style={{
       minHeight: '100vh',
-      background: `radial-gradient(1100px 460px at 50% -120px, oklch(0.93 0.06 ${kh} / 0.7), transparent 65%), linear-gradient(180deg, oklch(0.96 0.03 ${kh} / 0.45), transparent 340px)`,
+      background: `radial-gradient(1100px 460px at 50% -120px, oklch(var(--glow-1) 0.06 ${kh} / 0.7), transparent 65%), linear-gradient(180deg, oklch(var(--glow-2) 0.03 ${kh} / 0.45), transparent 340px)`,
     }}>
       <main style={{ maxWidth: 1280, margin: '0 auto', padding: narrow ? '16px 16px 64px' : '28px 28px 80px' }}>
         {/* title + actions */}

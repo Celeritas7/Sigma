@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { kindEmoji, KIND_DEFS, KIND_FALLBACK, KIND_TEXT_L } from './theme'
+import { readFileSync } from 'node:fs'
+import { ACCENT_OPTIONS, kindEmoji, KIND_DEFS, KIND_FALLBACK, resolveTheme } from './theme'
 
 describe('decision icons', () => {
   it('match the type first', () => {
@@ -41,13 +42,89 @@ function contrast(x, y) {
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
 }
 
-describe('decision colours', () => {
-  it('kindText reaches 4.5:1 on the page and on a hovered row, for every kind', () => {
-    const page = [0.985, 0.004, 95]  // --bg in styles.css
-    for (const { hue } of [...KIND_DEFS, KIND_FALLBACK]) {
-      const text = [KIND_TEXT_L, 0.15, hue]
-      expect(contrast(text, page), `hue ${hue} on page`).toBeGreaterThanOrEqual(4.5)
-      expect(contrast(text, [0.94, 0.05, hue]), `hue ${hue} on kindSoft`).toBeGreaterThanOrEqual(4.5)
+// The real tokens, read from styles.css: light is :root, dark is :root plus
+// the [data-theme="dark"] overrides.
+const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8')
+function block(selector) {
+  const start = css.indexOf(selector + ' {')
+  const body = css.slice(start, css.indexOf('\n}', start))
+  return Object.fromEntries([...body.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/(--[\w-]+):\s*([^;]+);/g)].map(m => [m[1], m[2].trim()]))
+}
+const LIGHT = block(':root')
+const DARK = { ...LIGHT, ...block(':root[data-theme="dark"]') }
+// resolve var() and calc(a + b), then parse "oklch(L C H)" into numbers
+function resolve(value, vars) {
+  let v = value
+  for (let i = 0; i < 10 && v.includes('var('); i++) v = v.replace(/var\((--[\w-]+)\)/g, (_, n) => vars[n])
+  v = v.replace(/calc\(([\d.]+) ([+-]) ([\d.]+)\)/g, (_, a, op, b) => String(op === '+' ? +a + +b : a - b))
+  return v
+}
+const WHITE = [1, 0, 0]
+function color(value, vars) {
+  const v = resolve(value, vars)
+  if (v === '#fff') return WHITE
+  const m = v.match(/^oklch\(([\d.]+) ([\d.]+) ([\d.]+)\)$/)
+  if (!m) throw new Error(`can't parse ${value} -> ${v}`)
+  return [+m[1], +m[2], +m[3]]
+}
+const tok = (vars, name) => color(`var(${name})`, vars)
+
+describe.each([['light', LIGHT], ['dark', DARK]])('%s theme contrast', (_, vars) => {
+  const atLeast = (fg, bg, label, min = 4.5) => expect(contrast(fg, bg), label).toBeGreaterThanOrEqual(min)
+
+  it('body text on every surface', () => {
+    for (const bg of ['--bg', '--bg-soft', '--bg-inset'])
+      for (const fg of ['--ink', '--ink-soft']) atLeast(tok(vars, fg), tok(vars, bg), `${fg} on ${bg}`)
+    for (const bg of ['--bg', '--bg-soft']) atLeast(tok(vars, '--ink-faint'), tok(vars, bg), `--ink-faint on ${bg}`)
+  })
+
+  it('status colours as text, on the page and on their own tint', () => {
+    for (const [fg, soft] of [['--neg', '--neg-soft'], ['--warn-text', '--warn-soft'], ['--hi', '--hi-soft']])
+      for (const bg of ['--bg', '--bg-soft', soft]) atLeast(tok(vars, fg), tok(vars, bg), `${fg} on ${bg}`)
+  })
+
+  it('accent text for every accent choice', () => {
+    for (const { name, hue } of ACCENT_OPTIONS) {
+      const v = { ...vars, '--accent-h': String(hue) }
+      for (const bg of ['--bg', '--bg-soft', '--accent-soft']) atLeast(tok(v, '--accent-text'), tok(v, bg), `${name}: --accent-text on ${bg}`)
+      atLeast(tok(v, '--accent-ink'), tok(v, '--accent-soft'), `${name}: --accent-ink on --accent-soft`)
+      for (const fill of ['--accent-fill', '--accent-fill-2']) atLeast(WHITE, tok(v, fill), `${name}: #fff on ${fill}`)
     }
+  })
+
+  it('text on fills', () => {
+    atLeast(WHITE, tok(vars, '--neg-fill'), '#fff on --neg-fill')
+    atLeast(tok(vars, '--on-warn'), tok(vars, '--warn'), '--on-warn on --warn')
+  })
+
+  it('kindText on the page and on a hovered row, for every kind', () => {
+    for (const { hue } of [...KIND_DEFS, KIND_FALLBACK]) {
+      const text = color(`oklch(var(--tone-text) 0.15 ${hue})`, vars)
+      atLeast(text, tok(vars, '--bg'), `hue ${hue} on page`)
+      atLeast(text, color(`oklch(var(--tone-soft) 0.05 ${hue})`, vars), `hue ${hue} on kindSoft`)
+    }
+  })
+
+  it('consideration colours as text (weight numbers), for every consideration hue', () => {
+    for (const hue of [145, 30, 260, 75, 320, 200, 60, 290, 175, 240])  // paramHues in DecisionView
+      atLeast(color(`oklch(var(--tone-text) 0.13 ${hue})`, vars), tok(vars, '--bg'), `param hue ${hue}`)
+  })
+
+  it('weight tier names on their lane', () => {
+    for (const hue of [145, 75, 235, 25, 285]) {
+      const lane = color(`oklch(calc(var(--tone-tint) + 0.01) 0.055 ${hue})`, vars)
+      atLeast(color(`oklch(var(--tone-label) 0.13 ${hue})`, vars), lane, `tier ${hue} name`)
+      atLeast(color(`oklch(calc(var(--tone-label) + 0.03) 0.1 ${hue})`, vars), lane, `tier ${hue} range`)
+    }
+  })
+})
+
+describe('theme choice', () => {
+  it('System follows the OS; Light and Dark override it', () => {
+    expect(resolveTheme('system', true)).toBe('dark')
+    expect(resolveTheme('system', false)).toBe('light')
+    expect(resolveTheme('light', true)).toBe('light')
+    expect(resolveTheme('dark', false)).toBe('dark')
+    expect(resolveTheme(null, true)).toBe('dark')
   })
 })

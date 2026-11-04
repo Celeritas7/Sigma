@@ -7,14 +7,37 @@ export const ACCENT_OPTIONS = [
   { name: 'coral', hue: 30 },
   { name: 'plum',  hue: 320 },
 ]
+// styles.css builds every accent token from --accent-h, per theme
 export function applyAccent(hue) {
-  const r = document.documentElement
-  r.style.setProperty('--accent',      `oklch(0.58 0.16 ${hue})`)
-  r.style.setProperty('--accent-soft', `oklch(0.93 0.05 ${hue})`)
-  r.style.setProperty('--accent-ink',  `oklch(0.32 0.13 ${hue})`)
-  r.style.setProperty('--accent-text', `oklch(0.50 0.15 ${hue})`)
-  // second gradient stop, 30° round the hue wheel (green 145 → teal 175)
-  r.style.setProperty('--accent-2',    `oklch(0.62 0.15 ${(hue + 30) % 360})`)
+  document.documentElement.style.setProperty('--accent-h', String(hue))
+}
+
+// ── light / dark ───────────────────────────────────────────────────────────
+// The choice is 'system', 'light' or 'dark', kept per browser. The page reads
+// <html data-theme="light|dark">; index.html sets it before first paint (keep
+// that copy in step with resolveTheme).
+export const THEME_PREFS = ['system', 'light', 'dark']
+const THEME_KEY = 'sigma_theme'
+const DARK_QUERY = '(prefers-color-scheme: dark)'
+export function resolveTheme(pref, systemDark) {
+  return pref === 'light' || pref === 'dark' ? pref : systemDark ? 'dark' : 'light'
+}
+export function readThemePref() {
+  try { const v = localStorage.getItem(THEME_KEY); return THEME_PREFS.includes(v) ? v : 'system' } catch { return 'system' }
+}
+export function applyTheme(pref = readThemePref()) {
+  document.documentElement.dataset.theme = resolveTheme(pref, window.matchMedia(DARK_QUERY).matches)
+}
+export function setThemePref(pref) {
+  try { localStorage.setItem(THEME_KEY, pref) } catch { /* private mode: still applies for this page */ }
+  applyTheme(pref)
+}
+// follow the OS when it switches (only matters while the choice is 'system')
+export function watchSystemTheme() {
+  const mq = window.matchMedia(DARK_QUERY)
+  const onChange = () => applyTheme()
+  mq.addEventListener('change', onChange)
+  return () => mq.removeEventListener('change', onChange)
 }
 
 // ── color system ───────────────────────────────────────────────────────────
@@ -44,13 +67,14 @@ export function kindDef(kind, title) {
 }
 export function kindEmoji(kind, title) { return kindDef(kind, title).emoji }
 export function kindHue(kind, title) { return kindDef(kind, title).hue }
-export function kindColor(kind, title) { return `oklch(0.56 0.15 ${kindHue(kind, title)})` }
-export function kindSoft(kind, title) { return `oklch(0.94 0.05 ${kindHue(kind, title)})` }
-// kindColor is for borders and fills; text needs this darker shade to reach
-// 4.5:1 on both the page and kindSoft (a hovered row). Checked in theme.test.js.
-export const KIND_TEXT_L = 0.48
-export function kindText(kind, title) { return `oklch(${KIND_TEXT_L} 0.15 ${kindHue(kind, title)})` }
+// Lightness comes from the --tone-* tokens in styles.css, so one string works
+// in both themes. kindColor is for borders and fills; kindText is for text and
+// reaches 4.5:1 on the page and on kindSoft (a hovered row), checked for every
+// kind and both themes in theme.test.js.
+export function kindColor(kind, title) { return `oklch(var(--tone-mark) 0.15 ${kindHue(kind, title)})` }
+export function kindSoft(kind, title) { return `oklch(var(--tone-soft) 0.05 ${kindHue(kind, title)})` }
+export function kindText(kind, title) { return `oklch(var(--tone-text) 0.15 ${kindHue(kind, title)})` }
 // option palette — distinct, evenly-spread hues, muted enough to coexist
 export const OPTION_HUES = [255, 25, 155, 305, 75, 200, 340, 120, 285, 45]
 export function optionColor(i) { return `oklch(0.6 0.14 ${OPTION_HUES[i % OPTION_HUES.length]})` }
-export function optionSoft(i) { return `oklch(0.95 0.045 ${OPTION_HUES[i % OPTION_HUES.length]})` }
+export function optionSoft(i) { return `oklch(calc(var(--tone-soft) + 0.01) 0.045 ${OPTION_HUES[i % OPTION_HUES.length]})` }

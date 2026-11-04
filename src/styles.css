@@ -1,31 +1,93 @@
 :root {
+  color-scheme: light;
+  /* accent hue; the header's accent menu changes it (applyAccent) */
+  --accent-h: 145;
   --bg:       oklch(0.985 0.004 95);
   --bg-soft:  oklch(0.965 0.005 95);
   --bg-inset: oklch(0.945 0.005 95);
   --ink:      oklch(0.15 0.015 240);
-  --ink-deep: oklch(0.19 0.03 265);
   --ink-soft: oklch(0.38 0.012 240);
   --ink-faint:oklch(0.50 0.010 240);
   --ink-ghost:oklch(0.82 0.008 240);
   --rule:     oklch(0.90 0.006 240);
   --rule-soft:oklch(0.945 0.005 240);
-  --accent:     oklch(0.58 0.16 145);
-  --accent-2:   oklch(0.62 0.15 175);
-  --accent-soft:oklch(0.93 0.05 145);
-  --accent-ink: oklch(0.32 0.13 145);
-  /* text-on-light versions of the accent / warn colours (>= 4.5:1 on every
-     background here); the plain tokens stay for fills, bars and buttons */
-  --accent-text: oklch(0.50 0.15 145);
+  --accent:     oklch(0.58 0.16 var(--accent-h));
+  --accent-2:   oklch(0.62 0.15 calc(var(--accent-h) + 30));
+  --accent-soft:oklch(0.93 0.05 var(--accent-h));
+  --accent-ink: oklch(0.32 0.13 var(--accent-h));
+  /* text versions of the accent / warn colours (>= 4.5:1 on every background
+     here); the plain tokens stay for fills, bars and buttons */
+  --accent-text: oklch(0.50 0.15 var(--accent-h));
+  /* accent fills under white text (buttons, selected states) */
+  --accent-fill:   oklch(0.50 0.15 var(--accent-h));
+  --accent-fill-2: oklch(0.52 0.14 calc(var(--accent-h) + 30));
   --neg:      oklch(0.54 0.18 30);
   --neg-soft: oklch(0.96 0.04 30);
+  --neg-fill: oklch(0.54 0.18 30);   /* under white text */
   --warn:     oklch(0.72 0.14 75);
   --warn-soft:oklch(0.96 0.05 75);
   --warn-text:oklch(0.50 0.11 75);
+  --on-warn:  oklch(0.22 0.04 75);   /* text on a --warn fill */
   --hi:       oklch(0.5 0.16 260);
   --hi-soft:  oklch(0.94 0.04 260);
+  /* the dark header, hero and robustness panel: dark in both themes */
+  --chrome-1: oklch(0.19 0.03 265);
+  --chrome-2: oklch(0.15 0.015 240);
+  --chrome-edge: transparent;
+  --primary-edge: var(--chrome-2);
+  /* lightness for the per-hue colours built in theme.js and the views
+     (decision kinds, weight tiers, page glow), so they follow the theme */
+  --tone-mark: 0.56;   /* borders, fills */
+  --tone-soft: 0.94;   /* tinted backgrounds */
+  --tone-text: 0.48;   /* text on the page or on --tone-soft */
+  --tone-tint: 0.96;   /* faint panel tints */
+  --tone-line: 0.88;   /* tinted borders */
+  --tone-label: 0.42;  /* tier names */
+  --glow-1: 0.93;
+  --glow-2: 0.96;
+  --overlay: oklch(0.15 0.015 240 / 0.55);
+  --aurora-opacity: 0.7;
   --shadow-sm: 0 1px 2px oklch(0.4 0.05 265 / 0.05), 0 2px 6px oklch(0.4 0.05 265 / 0.05);
   --shadow-md: 0 2px 6px oklch(0.4 0.05 265 / 0.06), 0 12px 28px oklch(0.4 0.05 265 / 0.08);
   --shadow-lg: 0 8px 24px oklch(0.4 0.05 265 / 0.10), 0 24px 60px oklch(0.4 0.05 265 / 0.12);
+}
+/* data-theme is set before first paint by index.html, then kept in step by
+   src/lib/theme.js (System follows the OS setting). */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg:       oklch(0.18 0.012 260);
+  --bg-soft:  oklch(0.215 0.012 260);
+  --bg-inset: oklch(0.25 0.012 260);
+  --ink:      oklch(0.95 0.006 240);
+  --ink-soft: oklch(0.82 0.008 240);
+  --ink-faint:oklch(0.70 0.010 240);
+  --ink-ghost:oklch(0.45 0.010 240);
+  --rule:     oklch(0.32 0.010 260);
+  --rule-soft:oklch(0.26 0.010 260);
+  --accent-soft:oklch(0.32 0.07 var(--accent-h));
+  --accent-ink: oklch(0.92 0.06 var(--accent-h));
+  --accent-text: oklch(0.78 0.14 var(--accent-h));
+  --neg:      oklch(0.74 0.15 25);
+  --neg-soft: oklch(0.28 0.07 30);
+  --warn-soft:oklch(0.30 0.06 75);
+  --warn-text:oklch(0.82 0.12 80);
+  --hi:       oklch(0.76 0.12 260);
+  --hi-soft:  oklch(0.30 0.06 260);
+  --chrome-edge: var(--rule);
+  --primary-edge: oklch(0.42 0.02 260);
+  --tone-mark: 0.62;
+  --tone-soft: 0.30;
+  --tone-text: 0.80;
+  --tone-tint: 0.235;
+  --tone-line: 0.40;
+  --tone-label: 0.84;
+  --glow-1: 0.34;
+  --glow-2: 0.26;
+  --overlay: oklch(0.06 0.01 260 / 0.7);
+  --aurora-opacity: 0.18;
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.3);
+  --shadow-md: 0 2px 6px oklch(0 0 0 / 0.3), 0 12px 28px oklch(0 0 0 / 0.3);
+  --shadow-lg: 0 8px 24px oklch(0 0 0 / 0.4), 0 24px 60px oklch(0 0 0 / 0.45);
 }
 html { background: var(--bg); }
 body {
@@ -37,7 +99,7 @@ body {
 }
 /* animated aurora background — drifting colored blobs behind everything */
 #aurora { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--bg); }
-#aurora .blob { position: absolute; border-radius: 50%; filter: blur(64px); opacity: 0.7; will-change: transform; }
+#aurora .blob { position: absolute; border-radius: 50%; filter: blur(64px); opacity: var(--aurora-opacity); will-change: transform; }
 #aurora .b1 { width: 46vw; height: 46vw; background: oklch(0.80 0.16 150); top: -12vw; left: -8vw; animation: drift1 22s ease-in-out infinite; }
 #aurora .b2 { width: 42vw; height: 42vw; background: oklch(0.78 0.16 260); top: -8vw; right: -10vw; animation: drift2 26s ease-in-out infinite; }
 #aurora .b3 { width: 40vw; height: 40vw; background: oklch(0.82 0.15 320); bottom: -16vw; left: 18vw; animation: drift3 30s ease-in-out infinite; }
@@ -66,9 +128,9 @@ input::placeholder, textarea::placeholder { color: var(--ink-faint); }
 .card { background: var(--bg); border: 1px solid var(--rule); border-radius: 14px; box-shadow: var(--shadow-md); }
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px; font-size: 13px; font-weight: 500; border: 1px solid transparent; border-radius: 8px; transition: all 120ms; line-height: 1.2; white-space: nowrap; }
 .btn-sm { padding: 6px 11px; font-size: 12px; }
-.btn-primary { background: linear-gradient(180deg, oklch(0.26 0.03 265), var(--ink)); color: #fff; border-color: var(--ink); box-shadow: var(--shadow-sm); }
+.btn-primary { background: linear-gradient(180deg, oklch(0.26 0.03 265), var(--chrome-2)); color: #fff; border-color: var(--primary-edge); box-shadow: var(--shadow-sm); }
 .btn-primary:hover { filter: brightness(1.15); }
-.btn-accent  { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border-color: transparent; box-shadow: var(--shadow-sm); }
+.btn-accent  { background: linear-gradient(135deg, var(--accent-fill), var(--accent-fill-2)); color: #fff; border-color: transparent; box-shadow: var(--shadow-sm); }
 .btn-accent:hover { filter: brightness(1.06); }
 .btn-outline { background: var(--bg); color: var(--ink); border-color: var(--rule); box-shadow: var(--shadow-sm); }
 .btn-outline:hover { background: var(--bg-soft); border-color: var(--ink-ghost); }
@@ -80,7 +142,7 @@ input::placeholder, textarea::placeholder { color: var(--ink-faint); }
 .tpl-card { width: 100%; height: 100%; display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 12px 14px; background: var(--bg); color: var(--ink); border: 1px solid var(--rule); border-radius: 10px; transition: background 120ms, border-color 120ms, box-shadow 120ms; }
 .tpl-card:hover:not(:disabled) { background: var(--ks); border-color: var(--kc); box-shadow: inset 3px 0 0 var(--kc); }
 .tpl-card:disabled { opacity: 0.6; cursor: wait; }
-.overlay-bg { position: fixed; inset: 0; background: oklch(0.15 0.015 240 / 0.55); z-index: 50; display: flex; align-items: center; justify-content: center; animation: fadein 200ms; backdrop-filter: blur(3px); }
+.overlay-bg { position: fixed; inset: 0; background: var(--overlay); z-index: 50; display: flex; align-items: center; justify-content: center; animation: fadein 200ms; backdrop-filter: blur(3px); }
 @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideright { from { transform: translateX(60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes popin { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
