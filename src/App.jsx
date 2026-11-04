@@ -5,6 +5,8 @@ import { completeness } from './lib/scoring'
 import { supabase, supabaseInitError } from './lib/supabase'
 import { parameterRowsFromTemplate, templateFromDecision, templatesFromRows } from './lib/templates'
 import { buildBackup, decisionCsv, exportFilename } from './lib/export'
+import { MAX_BACKUP_BYTES, chunks, parseBackup, planImport, summarize, uuid } from './lib/backupImport'
+import { ImportDialog } from './views/ImportDialog'
 import { downloadFile } from './lib/ui'
 import { ACCENT_OPTIONS, applyAccent, kindEmoji } from './lib/theme'
 import { BlindOverlay } from './views/Blind'
@@ -36,6 +38,8 @@ export function App() {
   // the user's saved templates (starters live in src/lib/templates.js)
   const [templates, setTemplates] = useState([])
   const [picking, setPicking] = useState(false)
+  // a parsed backup waiting in the import dialog: { backup, summary }
+  const [importing, setImporting] = useState(null)
 
   function patchData(fn) {
     dataRef.current = fn(dataRef.current)
@@ -281,10 +285,10 @@ export function App() {
 
   // Every row the user owns (RLS scopes each table to them), archived
   // decisions included, read in pages so nothing is cut off at the API's row cap.
-  async function fetchAll(table) {
+  async function fetchAll(table, columns = '*') {
     const PAGE = 1000, rows = []
     for (let from = 0; ; from += PAGE) {
-      const { data, error } = await supabase.from(table).select('*').order('id').range(from, from + PAGE - 1)
+      const { data, error } = await supabase.from(table).select(columns).order('id').range(from, from + PAGE - 1)
       if (error) throw error
       rows.push(...data)
       if (data.length < PAGE) return rows
@@ -294,11 +298,66 @@ export function App() {
   async function exportBackup() {
     try {
       const [decisions, parameters, options, scores, templates, templateParameters] = await Promise.all(
-        ['sigma_decisions', 'sigma_parameters', 'sigma_options', 'sigma_scores', 'sigma_templates', 'sigma_template_parameters'].map(fetchAll))
+        ['sigma_decisions', 'sigma_parameters', 'sigma_options', 'sigma_scores', 'sigma_templates', 'sigma_template_parameters'].map(t => fetchAll(t)))
       const backup = buildBackup({ decisions, parameters, options, scores, templates, templateParameters })
       downloadFile(exportFilename('backup', 'json'), JSON.stringify(backup, null, 2), 'application/json')
     } catch (e) {
       setSaveError(`Couldn't make the backup: ${e.message || e}`)
+    }
+  }
+
+  // Read the chosen file and open the preview. Ids already in the account
+  // (archived decisions too) start unticked there.
+  async function openImport(file) {
+    try {
+      if (file.size > MAX_BACKUP_BYTES) throw new Error('This file is too big to be a Sigma backup.')
+      const { backup, error } = parseBackup(await file.text())
+      if (error) throw new Error(error)
+      const [decs, tpls] = await Promise.all([fetchAll('sigma_decisions', 'id'), fetchAll('sigma_templates', 'id')])
+      const existing = new Set([...decs, ...tpls].map(r => r.id))
+      setImporting({ backup, summary: summarize(backup, existing) })
+    } catch (e) {
+      setSaveError(`Couldn't read the backup: ${e.message || e}`)
+    }
+  }
+
+  // Insert the planned rows parents-first. If any step fails, delete what
+  // this import added (children go with their decision or template), so a
+  // failed import leaves nothing half-made. Returns what the dialog shows.
+  async function runImport(chosenKeys) {
+    let plan = { decisions: [], templates: [] }
+    const insert = async (table, rows) => {
+      for (const batch of chunks(rows)) {
+        const { error } = await supabase.from(table).insert(batch)
+        if (error) throw error
+      }
+    }
+    try {
+      plan = planImport(importing.backup, chosenKeys, uuid)
+      await insert('sigma_templates', plan.templates)
+      await insert('sigma_template_parameters', plan.templateParameters)
+      await insert('sigma_decisions', plan.decisions)
+      await insert('sigma_parameters', plan.parameters)
+      await insert('sigma_options', plan.options)
+      await insert('sigma_scores', plan.scores)
+      for (const { id, final_choice_id } of plan.finalChoices) {
+        const { error } = await supabase.from('sigma_decisions').update({ final_choice_id }).eq('id', id)
+        if (error) throw error
+      }
+    } catch (e) {
+      const undo = async (table, rows) => {
+        for (const batch of chunks(rows.map(r => r.id), 200)) await supabase.from(table).delete().in('id', batch)
+      }
+      await undo('sigma_decisions', plan.decisions)
+      await undo('sigma_templates', plan.templates)
+      return { error: e.message || String(e) }
+    } finally {
+      loadDecisions(); loadTemplates()
+    }
+    const n = (k, w) => k ? `${k} ${w}${k === 1 ? '' : 's'}` : null
+    return {
+      what: [n(plan.decisions.length, 'decision'), n(plan.templates.length, 'template')].filter(Boolean).join(' and '),
+      archived: plan.decisions.filter(d => d.status === 'archived').length,
     }
   }
 
@@ -341,7 +400,7 @@ export function App() {
       />
 
       {selectedId === null ? (
-        <Home decisions={decisions} onOpen={setSelectedId} onNew={() => setPicking(true)} loading={loading} loadError={loadError} onRetry={loadDecisions} onDelete={deleteDecision} onReopen={id => setDecisionStatus(id, 'active')} onBackup={exportBackup} />
+        <Home decisions={decisions} onOpen={setSelectedId} onNew={() => setPicking(true)} loading={loading} loadError={loadError} onRetry={loadDecisions} onDelete={deleteDecision} onReopen={id => setDecisionStatus(id, 'active')} onBackup={exportBackup} onImportFile={openImport} />
       ) : selectedDecision ? (
         <DecisionView
           decision={selectedDecision}
@@ -366,6 +425,7 @@ export function App() {
       {selectedId && mode === 'whatif' && <WhatIfOverlay data={decisionData} onClose={() => setMode(null)} />}
       {selectedId && mode === 'blind'  && <BlindOverlay  data={decisionData} onScoreUpdate={updateScore} onClose={() => setMode(null)} />}
 
+      {importing && <ImportDialog summary={importing.summary} exportedAt={importing.backup.exported_at} onImport={runImport} onClose={() => setImporting(null)} />}
       {picking && <NewDecisionDialog templates={templates} onCreate={createDecision} onDeleteTemplate={deleteTemplate} onCancel={() => setPicking(false)} />}
 
       {saveError && (

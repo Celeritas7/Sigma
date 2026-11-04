@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Pill } from '../components/atoms'
 import { completeness, rankedOptions, standing } from '../lib/scoring'
 import { kindColor, kindEmoji, kindSoft, kindText } from '../lib/theme'
@@ -8,9 +8,10 @@ import { NARROW, NO_HOVER, useMedia } from '../lib/ui'
 // =============================================================================
 // HOME
 // =============================================================================
-export function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, onDelete, onReopen, onBackup }) {
+export function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, onDelete, onReopen, onBackup, onImportFile }) {
   const narrow = useMedia(NARROW)
   const [backingUp, setBackingUp] = useState(false)
+  const fileRef = useRef(null)
   const open = decisions.filter(d => d.status !== 'closed' && d.status !== 'archived')
   const closed = decisions.filter(d => d.status === 'closed')
   return (
@@ -99,7 +100,10 @@ export function Home({ decisions, onOpen, onNew, loading, loadError, onRetry, on
               onClick={async () => { setBackingUp(true); try { await onBackup() } finally { setBackingUp(false) } }}>
               {backingUp ? 'Preparing…' : 'Download backup (JSON)'}
             </button>
-            <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>Every decision, including archived ones, with its scores, plus your templates. To get one decision as a spreadsheet, open it and use Export CSV.</span>
+            <button className="btn btn-outline btn-sm" onClick={() => fileRef.current?.click()}>Import backup</button>
+            <input ref={fileRef} type="file" accept="application/json,.json" hidden aria-hidden="true" tabIndex={-1}
+              onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) onImportFile(f) }} />
+            <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>The backup has every decision, including archived ones, with its scores, plus your templates. Importing one adds copies and never changes what's already here. To get one decision as a spreadsheet, open it and use Export CSV.</span>
           </section>
         )}
       </main>
