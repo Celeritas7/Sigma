@@ -46,21 +46,21 @@ export function watchSystemTheme() {
 // doesn't match "card" and "eat" doesn't match "great". Each option gets a
 // stable color by position.
 export const KIND_DEFS = [
-  { test: /\b(jobs?|careers?|work(place)?|offers?|employ\w*|hir(e|ing)|salary|promotion|resign\w*)\b/i, emoji: '💼', hue: 255 },
-  { test: /\b(apartments?|hous(e|es|ing)|homes?|flats?|rent(al|ing)?|mov(e|ing)|reloca\w*|condos?|neighbou?rhoods?|commute)\b/i, emoji: '🏠', hue: 155 },
-  { test: /\b(names?|naming|brand(s|ing)?|titles?|labels?|logos?)\b/i, emoji: '🏷️', hue: 305 },
-  { test: /\b(strateg\w*|focus|business|products?|roadmaps?|q[1-4]|priorit\w*|goals?|plans?|planning)\b/i, emoji: '🎯', hue: 75 },
-  { test: /\b(schools?|stud(y|ying|ies)|colleges?|univ\w*|educat\w*|courses?|degrees?|skills?|learn\w*|coding|class(es)?)\b/i, emoji: '🎓', hue: 215 },
-  { test: /\b(cars?|vehicles?|auto|bikes?|scooters?|ev)\b/i, emoji: '🚗', hue: 25 },
-  { test: /\b(invest\w*|money|financ\w*|budgets?|stocks?|funds?|savings?|loans?|mortgages?)\b/i, emoji: '💰', hue: 130 },
-  { test: /\b(travel\w*|trips?|vacations?|holidays?|flights?|hotels?)\b/i, emoji: '✈️', hue: 235 },
-  { test: /\b(health|doctors?|medical|fitness|gym|workouts?|diet)\b/i, emoji: '🩺', hue: 10 },
-  { test: /\b(food|restaurants?|eat(ing)?|meals?|recipes?|dinner|lunch|cafes?)\b/i, emoji: '🍽️', hue: 55 },
-  { test: /\b(relationships?|partners?|dates?|dating|love|family|wedding|gifts?)\b/i, emoji: '❤️', hue: 350 },
-  { test: /\b(buy(ing)?|purchases?|laptops?|phones?|computers?|gadgets?)\b/i, emoji: '🛍️', hue: 280 },
-  { test: /\b(life|personal)\b/i, emoji: '🧭', hue: 195 },
+  { test: /\b(jobs?|careers?|work(place)?|offers?|employ\w*|hir(e|ing)|salary|promotion|resign\w*)\b/i, label: 'Work', emoji: '💼', hue: 255 },
+  { test: /\b(apartments?|hous(e|es|ing)|homes?|flats?|rent(al|ing)?|mov(e|ing)|reloca\w*|condos?|neighbou?rhoods?|commute)\b/i, label: 'Home', emoji: '🏠', hue: 155 },
+  { test: /\b(names?|naming|brand(s|ing)?|titles?|labels?|logos?)\b/i, label: 'Naming', emoji: '🏷️', hue: 305 },
+  { test: /\b(strateg\w*|focus|business|products?|roadmaps?|q[1-4]|priorit\w*|goals?|plans?|planning)\b/i, label: 'Strategy', emoji: '🎯', hue: 75 },
+  { test: /\b(schools?|stud(y|ying|ies)|colleges?|univ\w*|educat\w*|courses?|degrees?|skills?|learn\w*|coding|class(es)?)\b/i, label: 'Learning', emoji: '🎓', hue: 215 },
+  { test: /\b(cars?|vehicles?|auto|bikes?|scooters?|ev)\b/i, label: 'Vehicles', emoji: '🚗', hue: 25 },
+  { test: /\b(invest\w*|money|financ\w*|budgets?|stocks?|funds?|savings?|loans?|mortgages?)\b/i, label: 'Money', emoji: '💰', hue: 130 },
+  { test: /\b(travel\w*|trips?|vacations?|holidays?|flights?|hotels?)\b/i, label: 'Travel', emoji: '✈️', hue: 235 },
+  { test: /\b(health|doctors?|medical|fitness|gym|workouts?|diet)\b/i, label: 'Health', emoji: '🩺', hue: 10 },
+  { test: /\b(food|restaurants?|eat(ing)?|meals?|recipes?|dinner|lunch|cafes?)\b/i, label: 'Food', emoji: '🍽️', hue: 55 },
+  { test: /\b(relationships?|partners?|dates?|dating|love|family|wedding|gifts?)\b/i, label: 'People', emoji: '❤️', hue: 350 },
+  { test: /\b(buy(ing)?|purchases?|laptops?|phones?|computers?|gadgets?)\b/i, label: 'Shopping', emoji: '🛍️', hue: 280 },
+  { test: /\b(life|personal)\b/i, label: 'Life', emoji: '🧭', hue: 195 },
 ]
-export const KIND_FALLBACK = { emoji: '⚖️', hue: 285 }
+export const KIND_FALLBACK = { label: 'Other', emoji: '⚖️', hue: 285 }
 export function kindDef(kind, title) {
   const find = text => KIND_DEFS.find(d => d.test.test(String(text || '')))
   return find(kind) || find(title) || KIND_FALLBACK
