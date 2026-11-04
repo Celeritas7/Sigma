@@ -1,5 +1,7 @@
 // cross-check — asks Claude to stress-test one Sigma score and returns the text.
-// Deploy:  supabase functions deploy cross-check        (Verify JWT ON, and the user is checked in code)
+// Deploy:  supabase functions deploy cross-check --no-verify-jwt        (the user is checked in code)
+// 2026-11-04 (Akatsuki hub): Verify JWT OFF for the JWT signing-key migration (the gateway check only
+// understands the legacy JWT secret). Code otherwise the same as Sigma's live v13.
 //
 // 2026-10-28: locked down to signed-in users (before, it ran --no-verify-jwt
 // with no check, so anyone with the URL could use the ANTHROPIC_API_KEY).
