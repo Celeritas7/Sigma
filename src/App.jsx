@@ -4,6 +4,8 @@ import { SignIn } from './components/SignIn'
 import { completeness } from './lib/scoring'
 import { supabase, supabaseInitError } from './lib/supabase'
 import { parameterRowsFromTemplate, templateFromDecision, templatesFromRows } from './lib/templates'
+import { buildBackup, decisionCsv, exportFilename } from './lib/export'
+import { downloadFile } from './lib/ui'
 import { ACCENT_OPTIONS, applyAccent, kindEmoji } from './lib/theme'
 import { BlindOverlay } from './views/Blind'
 import { Home } from './views/Home'
@@ -46,7 +48,7 @@ export function App() {
     let res
     try { res = await query } catch (e) { res = { error: e } }
     if (!res.error) return res
-    setSaveError(`Couldn't save ${what}: ${res.error.message || res.error}`)
+    setSaveError(`Couldn't save ${what}: ${res.error.message || res.error}. Reloaded the saved data.`)
     loadDecisions()
     if (selectedRef.current) loadDecisionDetail(selectedRef.current)
     return null
@@ -271,6 +273,35 @@ export function App() {
     await insert
   }
 
+  function exportDecisionCsv() {
+    const d = selectedDecision
+    const { parameters, options, scores } = dataRef.current
+    downloadFile(exportFilename(d.title, 'csv'), decisionCsv(d, parameters, options, scores), 'text/csv;charset=utf-8')
+  }
+
+  // Every row the user owns (RLS scopes each table to them), archived
+  // decisions included, read in pages so nothing is cut off at the API's row cap.
+  async function fetchAll(table) {
+    const PAGE = 1000, rows = []
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase.from(table).select('*').order('id').range(from, from + PAGE - 1)
+      if (error) throw error
+      rows.push(...data)
+      if (data.length < PAGE) return rows
+    }
+  }
+
+  async function exportBackup() {
+    try {
+      const [decisions, parameters, options, scores, templates, templateParameters] = await Promise.all(
+        ['sigma_decisions', 'sigma_parameters', 'sigma_options', 'sigma_scores', 'sigma_templates', 'sigma_template_parameters'].map(fetchAll))
+      const backup = buildBackup({ decisions, parameters, options, scores, templates, templateParameters })
+      downloadFile(exportFilename('backup', 'json'), JSON.stringify(backup, null, 2), 'application/json')
+    } catch (e) {
+      setSaveError(`Couldn't make the backup: ${e.message || e}`)
+    }
+  }
+
   function goHome() { setSelectedId(null); setMode(null); loadDecisions() }
   const selectedDecision = decisions.find(d => d.id === selectedId)
 
@@ -310,7 +341,7 @@ export function App() {
       />
 
       {selectedId === null ? (
-        <Home decisions={decisions} onOpen={setSelectedId} onNew={() => setPicking(true)} loading={loading} loadError={loadError} onRetry={loadDecisions} onDelete={deleteDecision} onReopen={id => setDecisionStatus(id, 'active')} />
+        <Home decisions={decisions} onOpen={setSelectedId} onNew={() => setPicking(true)} loading={loading} loadError={loadError} onRetry={loadDecisions} onDelete={deleteDecision} onReopen={id => setDecisionStatus(id, 'active')} onBackup={exportBackup} />
       ) : selectedDecision ? (
         <DecisionView
           decision={selectedDecision}
@@ -326,6 +357,7 @@ export function App() {
           onOutcome={v => setOutcome(selectedId, v)}
           onDelete={() => deleteDecision(selectedId)}
           onSaveTemplate={saveTemplate}
+          onExport={exportDecisionCsv}
         />
       ) : (
         <div style={{ padding: '40px 28px' }}><span className="label">loading…</span></div>
@@ -338,7 +370,7 @@ export function App() {
 
       {saveError && (
         <div role="alert" style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 70, maxWidth: 'calc(100vw - 32px)', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px 10px 16px', background: 'var(--neg-soft)', border: '1px solid var(--neg)', borderRadius: 10, boxShadow: 'var(--shadow-md)', animation: 'popin 200ms' }}>
-          <span style={{ fontSize: 13, color: 'var(--neg)' }}>{saveError}. Reloaded the saved data.</span>
+          <span style={{ fontSize: 13, color: 'var(--neg)' }}>{saveError}</span>
           <button className="iconbtn" aria-label="dismiss" onClick={() => setSaveError(null)} style={{ color: 'var(--neg)' }}>×</button>
         </div>
       )}

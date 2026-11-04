@@ -13,7 +13,7 @@ import { SaveTemplateDialog } from './SaveTemplate'
 // =============================================================================
 // DECISION VIEW
 // =============================================================================
-export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, optionHandlers, onScoreUpdate, onOpenMode, onStatusChange, onClose, onOutcome, onDelete, onSaveTemplate }) {
+export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandlers, optionHandlers, onScoreUpdate, onOpenMode, onStatusChange, onClose, onOutcome, onDelete, onSaveTemplate, onExport }) {
   const [overrides, setOverrides] = useState(null)
   const [highlight, setHighlight] = useState(null)
 
@@ -72,6 +72,7 @@ export function DecisionView({ decision, data, onBack, onTitleUpdate, paramHandl
             <button className="btn btn-outline btn-sm" onClick={() => onOpenMode('blind')}>Blind score mode</button>
             <button className="btn btn-outline btn-sm" onClick={() => onOpenMode('whatif')}>What-if</button>
             {data.parameters.length > 0 && <button className="btn btn-outline btn-sm" onClick={() => setSavingTemplate(true)}>Save as template</button>}
+            {(data.parameters.length > 0 || data.options.length > 0) && <button className="btn btn-outline btn-sm" onClick={onExport} title="Download this decision as a spreadsheet (CSV)">Export CSV</button>}
             {closed
               ? <button className="btn btn-outline btn-sm" onClick={() => onStatusChange('active')}>Reopen</button>
               : <button className="btn btn-accent btn-sm" onClick={() => setClosing(true)}>✓ Close decision</button>}
